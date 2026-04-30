@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.radio.player.data.RadioStation
 import com.radio.player.databinding.ActivityMainBinding
 import com.radio.player.service.RadioPlaybackService
+import com.radio.player.ui.NowPlayingSheet
 import com.radio.player.ui.StationAdapter
 import com.radio.player.ui.StationDialog
 import com.radio.player.viewmodel.PlayerViewModel
@@ -90,6 +91,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupPlayerBar() {
         binding.playerBar.setOnClickListener {
+            val station = radioService?.currentStation?.value ?: return@setOnClickListener
+            val sheet = NowPlayingSheet.newInstance(station)
+            sheet.setRadioService(radioService)
+            sheet.onEditClick = { s -> showEditDialog(s) }
+            sheet.show(supportFragmentManager, "now_playing")
+        }
+
+        binding.playPauseButton.setOnClickListener {
             playerViewModel.togglePlayback()
         }
 
