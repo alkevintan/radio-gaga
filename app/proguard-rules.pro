@@ -1,0 +1,4 @@
+-keepattributes *Annotation*
+-keep class com.radio.player.data.** { *; }
+-keep class * extends androidx.room.Entity
+-dontwarn com.google.android.exoplayer2.**

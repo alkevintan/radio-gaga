@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Radio Player</string>
+    <string name="add_station">Add Station</string>
+    <string name="edit_station">Edit Station</string>
+    <string name="no_stations">No stations yet.\nTap + to add a radio station.</string>
+</resources>
