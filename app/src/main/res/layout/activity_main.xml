@@ -19,6 +19,15 @@
             app:title="@string/app_name"
             app:titleTextColor="@color/colorOnPrimary" />
 
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/genreTabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabMode="scrollable"
+            app:tabIndicatorColor="@color/colorOnPrimary"
+            app:tabTextColor="@color/colorOnPrimary"
+            app:tabSelectedTextColor="@color/colorOnPrimary" />
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout

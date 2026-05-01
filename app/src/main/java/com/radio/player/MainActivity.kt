@@ -18,6 +18,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.tabs.TabLayout
 import com.google.zxing.integration.android.IntentIntegrator
 import com.radio.player.data.RadioStation
 import com.radio.player.databinding.ActivityMainBinding
@@ -96,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         setupFab()
         setupPlayerBar()
+        setupGenreTabs()
         observeStations()
 
         startAndBindService()
@@ -218,6 +220,36 @@ class MainActivity : AppCompatActivity() {
             adapter.submitList(stations)
             binding.emptyView.visibility = if (stations.isEmpty()) View.VISIBLE else View.GONE
         }
+
+        stationViewModel.genres.observe(this) { genres ->
+            val tabLayout = binding.genreTabs
+            val currentSelection = tabLayout.selectedTabPosition
+            tabLayout.removeAllTabs()
+
+            val allTab = tabLayout.newTab().setText("All")
+            tabLayout.addTab(allTab)
+
+            for (genre in genres) {
+                tabLayout.addTab(tabLayout.newTab().setText(genre))
+            }
+
+            if (currentSelection >= 0 && currentSelection < tabLayout.tabCount) {
+                tabLayout.selectTab(tabLayout.getTabAt(currentSelection))
+            }
+
+            tabLayout.visibility = if (genres.isEmpty()) View.GONE else View.VISIBLE
+        }
+    }
+
+    private fun setupGenreTabs() {
+        binding.genreTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                val genre = if (tab.position == 0) null else tab.text?.toString()
+                stationViewModel.setSelectedGenre(genre)
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
     }
 
     private fun observePlayerState() {

@@ -20,6 +20,10 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
 
     val showFavoritesOnly = MutableLiveData(false)
 
+    val genres: LiveData<List<String>> = dao.getDistinctGenres()
+
+    private val selectedGenre = MutableLiveData<String?>(null)
+
     private var sortedStations: LiveData<List<RadioStation>> = dao.getAllStationsByDateAdded()
 
     val displayedStations: MediatorLiveData<List<RadioStation>> = MediatorLiveData()
@@ -34,16 +38,29 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
         displayedStations.addSource(sortedStations) { updateDisplayedStations() }
         displayedStations.addSource(favoriteStations) { updateDisplayedStations() }
         displayedStations.addSource(showFavoritesOnly) { updateDisplayedStations() }
+        displayedStations.addSource(selectedGenre) { updateDisplayedStations() }
     }
 
     private fun updateDisplayedStations() {
         val favsOnly = showFavoritesOnly.value ?: false
-        displayedStations.value = if (favsOnly) {
+        val genre = selectedGenre.value
+        val base = if (favsOnly) {
             favoriteStations.value ?: emptyList()
         } else {
             sortedStations.value ?: emptyList()
         }
+        displayedStations.value = if (genre != null) {
+            base.filter { it.genre.equals(genre, ignoreCase = true) }
+        } else {
+            base
+        }
     }
+
+    fun setSelectedGenre(genre: String?) {
+        selectedGenre.value = genre
+    }
+
+    fun getSelectedGenre(): String? = selectedGenre.value
 
     fun setSortOrder(order: SettingsManager.SortOrder) {
         _sortOrder.value = order

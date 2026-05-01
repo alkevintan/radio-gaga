@@ -46,4 +46,7 @@ interface StationDao {
 
     @Query("UPDATE stations SET isFavorite = :favorite WHERE id = :id")
     suspend fun setFavorite(id: Long, favorite: Boolean)
+
+    @Query("SELECT DISTINCT genre FROM stations WHERE genre != '' ORDER BY genre ASC")
+    fun getDistinctGenres(): LiveData<List<String>>
 }
