@@ -12,11 +12,12 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.zxing.integration.android.IntentIntegrator
 import com.radio.player.data.RadioStation
 import com.radio.player.databinding.ActivityMainBinding
 import com.radio.player.service.RadioPlaybackService
@@ -42,8 +43,8 @@ class MainActivity : AppCompatActivity() {
 
     private var radioService: RadioPlaybackService? = null
     private var isBound = false
-
     private var isFabShifted = false
+    private var isSpeedDialOpen = false
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { importM3u(it) }
@@ -51,6 +52,14 @@ class MainActivity : AppCompatActivity() {
 
     private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("audio/mpegurl")) { uri ->
         uri?.let { exportM3u(it) }
+    }
+
+    private val qrScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val scanResult = IntentIntegrator.parseActivityResult(result.resultCode, result.data)
+        val content = scanResult?.contents
+        if (!content.isNullOrBlank()) {
+            handleQrResult(content)
+        }
     }
 
     private val serviceConnection = object : ServiceConnection {
@@ -108,8 +117,77 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupFab() {
         binding.fabAdd.setOnClickListener {
+            toggleSpeedDial()
+        }
+
+        binding.speedDialScrim.setOnClickListener {
+            closeSpeedDial()
+        }
+
+        binding.fabAddManual.setOnClickListener {
+            closeSpeedDial()
             showAddDialog()
         }
+
+        binding.fabScanQr.setOnClickListener {
+            closeSpeedDial()
+            launchQrScanner()
+        }
+    }
+
+    private fun toggleSpeedDial() {
+        if (isSpeedDialOpen) {
+            closeSpeedDial()
+        } else {
+            openSpeedDial()
+        }
+    }
+
+    private fun openSpeedDial() {
+        isSpeedDialOpen = true
+        binding.fabAdd.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+        binding.speedDialContainer.visibility = View.VISIBLE
+        binding.speedDialScrim.visibility = View.VISIBLE
+        binding.speedDialAddManual.alpha = 0f
+        binding.speedDialAddManual.animate().alpha(1f).setDuration(150).start()
+        binding.speedDialScanQr.alpha = 0f
+        binding.speedDialScanQr.animate().alpha(1f).setDuration(150).setStartDelay(50).start()
+        binding.speedDialScrim.alpha = 0f
+        binding.speedDialScrim.animate().alpha(1f).setDuration(200).start()
+    }
+
+    private fun closeSpeedDial() {
+        isSpeedDialOpen = false
+        binding.fabAdd.setImageResource(R.drawable.ic_add)
+        binding.speedDialContainer.visibility = View.GONE
+        binding.speedDialScrim.visibility = View.GONE
+    }
+
+    private fun launchQrScanner() {
+        val integrator = IntentIntegrator(this)
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
+        integrator.setPrompt("Scan a radio station QR code")
+        integrator.setBeepEnabled(true)
+        integrator.setOrientationLocked(false)
+        qrScanLauncher.launch(integrator.createScanIntent())
+    }
+
+    private fun handleQrResult(content: String) {
+        var url = content
+        var name = ""
+        if (content.contains("|")) {
+            val parts = content.split("|", limit = 2)
+            url = parts[0].trim()
+            name = parts[1].trim()
+        }
+        val prefill = RadioStation(
+            name = name.ifBlank { "Scanned Station" },
+            streamUrl = url
+        )
+        StationDialog.newInstance(
+            station = prefill,
+            onSave = { station -> stationViewModel.addStation(station) }
+        ).show(supportFragmentManager, "add_station")
     }
 
     private fun setupPlayerBar() {
@@ -227,7 +305,6 @@ class MainActivity : AppCompatActivity() {
             R.id.action_filter -> {
                 stationViewModel.toggleFilter()
                 val showingFavs = stationViewModel.showFavoritesOnly.value ?: false
-                item.setIcon(if (showingFavs) R.drawable.ic_favorite_off else R.drawable.ic_favorite_off)
                 item.title = if (showingFavs) "Show All" else "Favorites"
                 true
             }
@@ -342,6 +419,10 @@ class MainActivity : AppCompatActivity() {
                         .translationY(-translation.toFloat())
                         .setDuration(250)
                         .start()
+                    binding.speedDialContainer.animate()
+                        .translationY(-translation.toFloat())
+                        .setDuration(250)
+                        .start()
                 }
             })
             isFabShifted = true
@@ -350,7 +431,19 @@ class MainActivity : AppCompatActivity() {
                 .translationY(0f)
                 .setDuration(250)
                 .start()
+            binding.speedDialContainer.animate()
+                .translationY(0f)
+                .setDuration(250)
+                .start()
             isFabShifted = false
+        }
+    }
+
+    override fun onBackPressed() {
+        if (isSpeedDialOpen) {
+            closeSpeedDial()
+        } else {
+            super.onBackPressed()
         }
     }
 }
