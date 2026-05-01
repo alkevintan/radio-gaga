@@ -540,6 +540,7 @@ class RadioPlaybackService : LifecycleService() {
             else -> "Paused"
         }
 
+        val startTime = _playStartTime.value
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(station?.name ?: "Radio Player")
             .setContentText(contentText)
@@ -554,8 +555,15 @@ class RadioPlaybackService : LifecycleService() {
             )
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setShowWhen(false)
             .setOngoing(playing)
+
+        if (startTime > 0L) {
+            builder.setShowWhen(true)
+                .setUsesChronometer(true)
+                .setWhen(startTime)
+        } else {
+            builder.setShowWhen(false)
+        }
 
         if (station?.favicon?.isNotBlank() == true) {
             try {

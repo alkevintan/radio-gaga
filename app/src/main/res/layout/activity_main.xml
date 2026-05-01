@@ -93,6 +93,17 @@
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
+            <Chronometer
+                android:id="@+id/playerBarElapsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="?android:attr/textColorSecondary"
+                android:visibility="gone" />
+
             <ProgressBar
                 android:id="@+id/bufferingIndicator"
                 style="?android:attr/progressBarStyleSmall"

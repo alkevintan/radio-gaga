@@ -400,6 +400,25 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        lifecycleScope.launch {
+            radioService?.playStartTime?.collect { startWallMs ->
+                updatePlayerBarChronometer(startWallMs)
+            }
+        }
+    }
+
+    private fun updatePlayerBarChronometer(startWallMs: Long) {
+        val chrono = binding.playerBarElapsed
+        if (startWallMs <= 0L) {
+            chrono.stop()
+            chrono.visibility = View.GONE
+            return
+        }
+        val elapsed = System.currentTimeMillis() - startWallMs
+        chrono.base = android.os.SystemClock.elapsedRealtime() - elapsed
+        chrono.visibility = View.VISIBLE
+        chrono.start()
     }
 
     private fun playStation(station: RadioStation) {
