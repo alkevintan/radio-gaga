@@ -12,6 +12,7 @@ object SettingsManager {
     private const val KEY_TUNING_SOUND = "tuning_sound"
     private const val KEY_AUTO_UPDATE_CHECK = "auto_update_check"
     private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
+    private const val KEY_SHOW_STREAM_URLS = "show_stream_urls"
 
     enum class SortOrder(val label: String, val isManual: Boolean = false) {
         NAME_ASC("Name (A-Z)"),
@@ -78,5 +79,12 @@ object SettingsManager {
 
     fun setLastUpdateCheck(context: Context, ts: Long) {
         prefs(context).edit().putLong(KEY_LAST_UPDATE_CHECK, ts).apply()
+    }
+
+    fun isShowStreamUrls(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SHOW_STREAM_URLS, true)
+
+    fun setShowStreamUrls(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SHOW_STREAM_URLS, enabled).apply()
     }
 }

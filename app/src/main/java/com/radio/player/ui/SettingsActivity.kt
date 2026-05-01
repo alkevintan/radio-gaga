@@ -43,6 +43,7 @@ class SettingsActivity : AppCompatActivity() {
         setupAutoReconnect()
         setupTuningSound()
         setupThemeSelector()
+        setupShowStreamUrls()
         setupUpdates()
         setupAlarms()
     }
@@ -103,6 +104,13 @@ class SettingsActivity : AppCompatActivity() {
         binding.tuningSoundSwitch.isChecked = SettingsManager.isTuningSoundEnabled(this)
         binding.tuningSoundSwitch.setOnCheckedChangeListener { _, isChecked ->
             SettingsManager.setTuningSoundEnabled(this, isChecked)
+        }
+    }
+
+    private fun setupShowStreamUrls() {
+        binding.showStreamUrlsSwitch.isChecked = SettingsManager.isShowStreamUrls(this)
+        binding.showStreamUrlsSwitch.setOnCheckedChangeListener { _, isChecked ->
+            SettingsManager.setShowStreamUrls(this, isChecked)
         }
     }
 

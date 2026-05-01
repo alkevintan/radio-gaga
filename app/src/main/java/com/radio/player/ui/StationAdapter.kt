@@ -70,6 +70,9 @@ class StationAdapter(
             binding.stationName.text = station.name
             binding.stationGenre.text = station.genre.ifBlank { station.country }
             binding.stationUrl.text = station.streamUrl
+            binding.stationUrl.visibility =
+                if (com.radio.player.util.SettingsManager.isShowStreamUrls(binding.root.context))
+                    android.view.View.VISIBLE else android.view.View.GONE
 
             val isPlaying = station.id == currentlyPlayingId
             binding.playingIndicator.visibility = if (isPlaying) android.view.View.VISIBLE else android.view.View.GONE

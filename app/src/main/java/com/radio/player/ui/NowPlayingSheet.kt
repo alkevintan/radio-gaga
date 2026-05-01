@@ -89,6 +89,9 @@ class NowPlayingSheet : BottomSheetDialogFragment() {
         binding.sheetStationName.text = station.name
         binding.sheetStreamUrl.text = station.streamUrl
 
+        binding.sheetStreamUrlRow.visibility =
+            if (com.radio.player.util.SettingsManager.isShowStreamUrls(requireContext())) View.VISIBLE else View.GONE
+
         if (station.genre.isNotBlank()) {
             binding.sheetStationGenre.text = station.genre
             binding.sheetGenreRow.visibility = View.VISIBLE

@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var lastThemeKey: String? = null
+    private var lastShowStreamUrls: Boolean? = null
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -149,6 +150,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
         lastThemeKey = currentKey
+
+        val showUrls = SettingsManager.isShowStreamUrls(this)
+        if (lastShowStreamUrls != null && lastShowStreamUrls != showUrls) {
+            adapter.notifyDataSetChanged()
+        }
+        lastShowStreamUrls = showUrls
     }
 
     private fun setupRecyclerView() {
