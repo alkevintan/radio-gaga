@@ -14,6 +14,8 @@ import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
@@ -47,6 +49,8 @@ class MainActivity : AppCompatActivity() {
     private var isBound = false
     private var isFabShifted = false
     private var isSpeedDialOpen = false
+    private var filterMenuItem: MenuItem? = null
+    private var searchMenuItem: MenuItem? = null
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { importM3u(it) }
@@ -251,6 +255,8 @@ class MainActivity : AppCompatActivity() {
 
             tabLayout.visibility = if (genres.isEmpty()) View.GONE else View.VISIBLE
         }
+
+        stationViewModel.showFavoritesOnly.observe(this) { updateFilterMenuIcon() }
     }
 
     private fun setupGenreTabs() {
@@ -343,6 +349,28 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+
+        filterMenuItem = menu.findItem(R.id.action_filter)
+        searchMenuItem = menu.findItem(R.id.action_search)
+
+        updateFilterMenuIcon()
+
+        val searchView = searchMenuItem?.actionView as? SearchView
+        searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                stationViewModel.setSearchQuery(query ?: "")
+                return true
+            }
+            override fun onQueryTextChange(newText: String?): Boolean {
+                stationViewModel.setSearchQuery(newText ?: "")
+                return true
+            }
+        })
+        searchView?.setOnCloseListener {
+            stationViewModel.setSearchQuery("")
+            false
+        }
+
         return true
     }
 
@@ -350,8 +378,7 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.action_filter -> {
                 stationViewModel.toggleFilter()
-                val showingFavs = stationViewModel.showFavoritesOnly.value ?: false
-                item.title = if (showingFavs) "Show All" else "Favorites"
+                updateFilterMenuIcon()
                 true
             }
             R.id.action_sort -> {
@@ -379,6 +406,15 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun updateFilterMenuIcon() {
+        val isFavsOnly = stationViewModel.showFavoritesOnly.value ?: false
+        filterMenuItem?.apply {
+            icon = ContextCompat.getDrawable(this@MainActivity,
+                if (isFavsOnly) R.drawable.ic_favorite else R.drawable.ic_favorite_off)
+            title = if (isFavsOnly) "Show All" else "Favorites"
         }
     }
 

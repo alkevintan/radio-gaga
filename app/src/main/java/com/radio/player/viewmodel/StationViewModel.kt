@@ -22,6 +22,8 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
 
     val genres: LiveData<List<String>> = dao.getDistinctGenres()
 
+    private val searchQuery = MutableLiveData("")
+
     private val selectedGenre = MutableLiveData<String?>(null)
 
     private var sortedStations: LiveData<List<RadioStation>> = dao.getAllStationsByDateAdded()
@@ -39,21 +41,33 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
         displayedStations.addSource(favoriteStations) { updateDisplayedStations() }
         displayedStations.addSource(showFavoritesOnly) { updateDisplayedStations() }
         displayedStations.addSource(selectedGenre) { updateDisplayedStations() }
+        displayedStations.addSource(searchQuery) { updateDisplayedStations() }
+    }
+
+    fun setSearchQuery(query: String) {
+        searchQuery.value = query.trim()
     }
 
     private fun updateDisplayedStations() {
         val favsOnly = showFavoritesOnly.value ?: false
         val genre = selectedGenre.value
-        val base = if (favsOnly) {
+        val query = searchQuery.value ?: ""
+
+        var base = if (favsOnly) {
             favoriteStations.value ?: emptyList()
         } else {
             sortedStations.value ?: emptyList()
         }
-        displayedStations.value = if (genre != null) {
-            base.filter { it.genre.equals(genre, ignoreCase = true) }
-        } else {
-            base
+
+        if (genre != null) {
+            base = base.filter { it.genre.equals(genre, ignoreCase = true) }
         }
+
+        if (query.isNotEmpty()) {
+            base = base.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
+        displayedStations.value = base
     }
 
     fun setSelectedGenre(genre: String?) {
