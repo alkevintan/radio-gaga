@@ -104,7 +104,7 @@ object AlarmScheduler {
         )
 
         for (i in 0 until 7) {
-            val checkDay = if (includeToday) (currentDay + i - 1) % 7 + 1 else (currentDay + i - 1) % 7 + 1
+            val checkDay = if (includeToday) (currentDay + i - 1) % 7 + 1 else (currentDay + i) % 7 + 1
             val bit = dayMapping[checkDay] ?: continue
             if (dayBits and bit != 0) {
                 return i

@@ -62,9 +62,12 @@ class AlarmReceiver : BroadcastReceiver() {
                     context.startService(serviceIntent)
                 }
 
-                // Reschedule if repeating
+                // Reschedule if repeating, deactivate if once
                 if (alarm.repeatDays != 0) {
                     AlarmScheduler.scheduleAlarm(context, alarm)
+                } else {
+                    // "Once" alarm: deactivate after triggering
+                    db.alarmDao().setEnabled(alarm.id, false)
                 }
             }
         }
