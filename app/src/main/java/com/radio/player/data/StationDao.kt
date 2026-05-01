@@ -26,8 +26,14 @@ interface StationDao {
     @Query("SELECT * FROM stations ORDER BY country ASC, name ASC")
     fun getAllStationsByCountry(): LiveData<List<RadioStation>>
 
+    @Query("SELECT * FROM stations ORDER BY name ASC")
+    suspend fun getAllStationsSync(): List<RadioStation>
+
     @Query("SELECT * FROM stations WHERE id = :id")
     suspend fun getStationById(id: Long): RadioStation?
+
+    @Query("SELECT * FROM stations WHERE id = :id")
+    fun getStationByIdLiveData(id: Long): LiveData<RadioStation>
 
     @Query("SELECT COUNT(*) FROM stations")
     suspend fun getCount(): Int

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Alarm"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TimePicker
+        android:id="@+id/timePicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:timePickerMode="spinner"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Station"
+        android:textSize="14sp"
+        android:layout_marginBottom="4dp" />
+
+    <Spinner
+        android:id="@+id/stationSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Repeat"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp" />
+
+    <RadioGroup
+        android:id="@+id/repeatGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <RadioButton
+            android:id="@+id/rbOnce"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Once"
+            android:checked="true" />
+
+        <RadioButton
+            android:id="@+id/rbDaily"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Daily" />
+
+        <RadioButton
+            android:id="@+id/rbWeekdays"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Weekdays (Mon-Fri)" />
+
+        <RadioButton
+            android:id="@+id/rbWeekends"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Weekends (Sat-Sun)" />
+
+        <RadioButton
+            android:id="@+id/rbCustom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom days" />
+
+    </RadioGroup>
+
+    <LinearLayout
+        android:id="@+id/customDaysLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:layout_marginBottom="16dp">
+
+        <CheckBox
+            android:id="@+id/cbSun"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sun" />
+
+        <CheckBox
+            android:id="@+id/cbMon"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Mon" />
+
+        <CheckBox
+            android:id="@+id/cbTue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Tue" />
+
+        <CheckBox
+            android:id="@+id/cbWed"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Wed" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <CheckBox
+            android:id="@+id/cbThu"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Thu" />
+
+        <CheckBox
+            android:id="@+id/cbFri"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Fri" />
+
+        <CheckBox
+            android:id="@+id/cbSat"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sat" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="16dp">
+
+        <Button
+            android:id="@+id/btnCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:background="?android:attr/selectableItemBackground"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:background="?android:attr/selectableItemBackground"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

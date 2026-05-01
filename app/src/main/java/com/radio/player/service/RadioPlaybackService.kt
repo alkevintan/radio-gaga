@@ -117,7 +117,22 @@ class RadioPlaybackService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
-            ACTION_PLAY -> play()
+            ACTION_PLAY -> {
+                val stationId = intent.getLongExtra("station_id", -1)
+                val stationName = intent.getStringExtra("station_name") ?: ""
+                val stationUrl = intent.getStringExtra("station_url") ?: ""
+
+                if (stationId != -1L && stationUrl.isNotEmpty()) {
+                    val station = com.radio.player.data.RadioStation(
+                        id = stationId,
+                        name = stationName,
+                        streamUrl = stationUrl
+                    )
+                    playStation(station)
+                } else {
+                    play()
+                }
+            }
             ACTION_PAUSE -> pause()
             ACTION_STOP -> stopPlayback()
         }
