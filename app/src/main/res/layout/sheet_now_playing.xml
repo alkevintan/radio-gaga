@@ -28,6 +28,13 @@
         android:textAllCaps="true"
         android:letterSpacing="0.1" />
 
+    <com.radio.player.ui.SpectrumVisualizerView
+        android:id="@+id/sheetSpectrumVisualizer"
+        android:layout_width="96dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp" />
+
     <TextView
         android:id="@+id/sheetStationName"
         android:layout_width="match_parent"

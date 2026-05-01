@@ -68,6 +68,9 @@ class NowPlayingSheet : BottomSheetDialogFragment() {
         populateStationInfo(station)
         setupControls()
         observePlaybackState()
+
+        val isCurrentlyPlaying = radioService?.isPlaying?.value ?: false
+        binding.sheetSpectrumVisualizer.setPlaying(isCurrentlyPlaying)
     }
 
     private fun populateStationInfo(station: RadioStation) {
@@ -128,6 +131,7 @@ class NowPlayingSheet : BottomSheetDialogFragment() {
                 _binding?.sheetPlayPauseButton?.setImageResource(
                     if (playing) R.drawable.ic_pause else R.drawable.ic_play
                 )
+                _binding?.sheetSpectrumVisualizer?.setPlaying(playing)
             }
         }
 
@@ -140,6 +144,7 @@ class NowPlayingSheet : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
+        _binding?.sheetSpectrumVisualizer?.setPlaying(false)
         super.onDestroyView()
         _binding = null
     }

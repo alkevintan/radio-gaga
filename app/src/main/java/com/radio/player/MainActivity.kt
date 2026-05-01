@@ -9,6 +9,7 @@ import android.os.IBinder
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -33,6 +34,8 @@ class MainActivity : AppCompatActivity() {
 
     private var radioService: RadioPlaybackService? = null
     private var isBound = false
+
+    private var isFabShifted = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -105,6 +108,8 @@ class MainActivity : AppCompatActivity() {
         binding.stopButton.setOnClickListener {
             playerViewModel.stopPlayback()
             binding.playerBar.visibility = View.GONE
+            binding.spectrumVisualizer.setPlaying(false)
+            animateFabForPlayerBar(false)
         }
     }
 
@@ -121,6 +126,7 @@ class MainActivity : AppCompatActivity() {
                 station?.let {
                     binding.playerBar.visibility = View.VISIBLE
                     binding.nowPlayingName.text = it.name
+                    animateFabForPlayerBar(true)
                 }
             }
         }
@@ -130,6 +136,7 @@ class MainActivity : AppCompatActivity() {
                 binding.playPauseButton.setImageResource(
                     if (playing) R.drawable.ic_pause else R.drawable.ic_play
                 )
+                binding.spectrumVisualizer.setPlaying(playing)
             }
         }
 
@@ -152,6 +159,8 @@ class MainActivity : AppCompatActivity() {
     private fun playStation(station: RadioStation) {
         binding.playerBar.visibility = View.VISIBLE
         binding.nowPlayingName.text = station.name
+        animateFabForPlayerBar(true)
+        binding.spectrumVisualizer.setPlaying(true)
         adapter.setCurrentlyPlaying(station.id)
         playerViewModel.playStation(station)
     }
@@ -175,6 +184,8 @@ class MainActivity : AppCompatActivity() {
                 if (radioService?.currentStation?.value?.id == deletedStation.id) {
                     playerViewModel.stopPlayback()
                     binding.playerBar.visibility = View.GONE
+                    binding.spectrumVisualizer.setPlaying(false)
+                    animateFabForPlayerBar(false)
                 }
             }
         ).show(supportFragmentManager, "edit_station")
@@ -231,6 +242,29 @@ class MainActivity : AppCompatActivity() {
         if (isBound) {
             unbindService(serviceConnection)
             isBound = false
+        }
+    }
+
+    private fun animateFabForPlayerBar(visible: Boolean) {
+        if (visible && !isFabShifted) {
+            binding.playerBar.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    binding.playerBar.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    val translation = binding.playerBar.height +
+                        (binding.playerBar.layoutParams as android.view.ViewGroup.MarginLayoutParams).bottomMargin
+                    binding.fabAdd.animate()
+                        .translationY(-translation.toFloat())
+                        .setDuration(250)
+                        .start()
+                }
+            })
+            isFabShifted = true
+        } else if (!visible && isFabShifted) {
+            binding.fabAdd.animate()
+                .translationY(0f)
+                .setDuration(250)
+                .start()
+            isFabShifted = false
         }
     }
 }
