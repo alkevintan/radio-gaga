@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/iconOptionA"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:layout_weight="1"
+        android:contentDescription="Option A"
+        android:padding="4dp"
+        android:src="@drawable/icon_option_a" />
+
+    <ImageView
+        android:id="@+id/iconOptionB"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:layout_weight="1"
+        android:contentDescription="Option B"
+        android:padding="4dp"
+        android:src="@drawable/icon_option_b" />
+
+    <ImageView
+        android:id="@+id/iconOptionC"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:layout_weight="1"
+        android:contentDescription="Option C"
+        android:padding="4dp"
+        android:src="@drawable/icon_option_c" />
+
+    <ImageView
+        android:id="@+id/iconOptionD"
+        android:layout_width="0dp"
+        android:layout_height="72dp"
+        android:layout_weight="1"
+        android:contentDescription="Option D"
+        android:padding="4dp"
+        android:src="@drawable/icon_option_d" />
+
+</LinearLayout>
