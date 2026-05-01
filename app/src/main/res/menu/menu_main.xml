@@ -4,12 +4,38 @@
 
     <item
         android:id="@+id/action_filter"
+        android:icon="@drawable/ic_favorite_off"
         android:title="Favorites"
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_sort"
+        android:title="@string/sort_by"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_add_preset"
         android:title="Add Preset"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_import_m3u"
+        android:title="@string/import_m3u"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_export_m3u"
+        android:title="@string/export_m3u"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_settings"
+        android:title="@string/settings"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_about"
+        android:title="@string/about"
         app:showAsAction="never" />
 
 </menu>

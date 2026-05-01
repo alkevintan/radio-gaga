@@ -11,6 +11,21 @@ interface StationDao {
     @Query("SELECT * FROM stations WHERE isFavorite = 1 ORDER BY `order` ASC, createdAt ASC")
     fun getFavoriteStations(): LiveData<List<RadioStation>>
 
+    @Query("SELECT * FROM stations ORDER BY name ASC")
+    fun getAllStationsByNameAsc(): LiveData<List<RadioStation>>
+
+    @Query("SELECT * FROM stations ORDER BY name DESC")
+    fun getAllStationsByNameDesc(): LiveData<List<RadioStation>>
+
+    @Query("SELECT * FROM stations ORDER BY createdAt DESC")
+    fun getAllStationsByDateAdded(): LiveData<List<RadioStation>>
+
+    @Query("SELECT * FROM stations ORDER BY genre ASC, name ASC")
+    fun getAllStationsByGenre(): LiveData<List<RadioStation>>
+
+    @Query("SELECT * FROM stations ORDER BY country ASC, name ASC")
+    fun getAllStationsByCountry(): LiveData<List<RadioStation>>
+
     @Query("SELECT * FROM stations WHERE id = :id")
     suspend fun getStationById(id: Long): RadioStation?
 
@@ -19,6 +34,9 @@ interface StationDao {
 
     @Insert
     suspend fun insert(station: RadioStation): Long
+
+    @Insert
+    suspend fun insertAll(stations: List<RadioStation>): List<Long>
 
     @Update
     suspend fun update(station: RadioStation)

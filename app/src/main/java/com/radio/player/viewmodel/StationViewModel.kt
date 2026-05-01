@@ -5,27 +5,33 @@ import androidx.lifecycle.*
 import com.radio.player.data.AppDatabase
 import com.radio.player.data.RadioStation
 import com.radio.player.data.StationRepository
+import com.radio.player.util.SettingsManager
 import kotlinx.coroutines.launch
 
 class StationViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: StationRepository
+    private val dao = AppDatabase.getInstance(application).stationDao()
 
-    val allStations: LiveData<List<RadioStation>>
-    val favoriteStations: LiveData<List<RadioStation>>
+    private val _sortOrder = MutableLiveData(SettingsManager.SortOrder.DATE_ADDED)
+    val sortOrder: LiveData<SettingsManager.SortOrder> = _sortOrder
+
+    val favoriteStations: LiveData<List<RadioStation>> = dao.getFavoriteStations()
 
     val showFavoritesOnly = MutableLiveData(false)
+
+    private var sortedStations: LiveData<List<RadioStation>> = dao.getAllStationsByDateAdded()
 
     val displayedStations: MediatorLiveData<List<RadioStation>> = MediatorLiveData()
 
     init {
-        val dao = AppDatabase.getInstance(application).stationDao()
+        val settingsOrder = SettingsManager.getSortOrder(application)
+        _sortOrder.value = settingsOrder
         repository = StationRepository(dao)
+        repository.setSortOrder(settingsOrder)
+        sortedStations = repository.getSortedStations()
 
-        allStations = repository.allStations
-        favoriteStations = repository.favoriteStations
-
-        displayedStations.addSource(allStations) { updateDisplayedStations() }
+        displayedStations.addSource(sortedStations) { updateDisplayedStations() }
         displayedStations.addSource(favoriteStations) { updateDisplayedStations() }
         displayedStations.addSource(showFavoritesOnly) { updateDisplayedStations() }
     }
@@ -35,13 +41,29 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
         displayedStations.value = if (favsOnly) {
             favoriteStations.value ?: emptyList()
         } else {
-            allStations.value ?: emptyList()
+            sortedStations.value ?: emptyList()
         }
+    }
+
+    fun setSortOrder(order: SettingsManager.SortOrder) {
+        _sortOrder.value = order
+        SettingsManager.setSortOrder(getApplication(), order)
+        repository.setSortOrder(order)
+        displayedStations.removeSource(sortedStations)
+        sortedStations = repository.getSortedStations()
+        displayedStations.addSource(sortedStations) { updateDisplayedStations() }
+        updateDisplayedStations()
     }
 
     fun addStation(station: RadioStation) {
         viewModelScope.launch {
             repository.insert(station)
+        }
+    }
+
+    fun addStations(stations: List<RadioStation>) {
+        viewModelScope.launch {
+            repository.insertAll(stations)
         }
     }
 

@@ -11,7 +11,8 @@ import com.radio.player.databinding.ItemStationBinding
 class StationAdapter(
     private val onStationClick: (RadioStation) -> Unit,
     private val onFavoriteClick: (RadioStation) -> Unit,
-    private val onLongClick: (RadioStation) -> Unit
+    private val onLongClick: (RadioStation) -> Unit,
+    private val onShareClick: (RadioStation) -> Unit
 ) : ListAdapter<RadioStation, StationAdapter.StationViewHolder>(StationDiffCallback()) {
 
     private var currentlyPlayingId: Long = -1
@@ -68,6 +69,10 @@ class StationAdapter(
             binding.root.setOnLongClickListener {
                 onLongClick(station)
                 true
+            }
+
+            binding.shareButton.setOnClickListener {
+                onShareClick(station)
             }
         }
     }

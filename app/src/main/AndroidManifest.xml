@@ -29,6 +29,12 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings"
+            android:parentActivityName=".MainActivity" />
+
     </application>
 
 </manifest>

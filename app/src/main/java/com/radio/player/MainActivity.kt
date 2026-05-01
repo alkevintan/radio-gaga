@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.view.Menu
@@ -12,15 +13,22 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.radio.player.data.RadioStation
 import com.radio.player.databinding.ActivityMainBinding
 import com.radio.player.service.RadioPlaybackService
+import com.radio.player.ui.AboutDialog
 import com.radio.player.ui.NowPlayingSheet
+import com.radio.player.ui.SettingsActivity
+import com.radio.player.ui.ShareQrDialog
+import com.radio.player.ui.SortDialog
 import com.radio.player.ui.StationAdapter
 import com.radio.player.ui.StationDialog
+import com.radio.player.util.M3uHelper
+import com.radio.player.util.SettingsManager
 import com.radio.player.viewmodel.PlayerViewModel
 import com.radio.player.viewmodel.StationViewModel
 import kotlinx.coroutines.launch
@@ -36,6 +44,14 @@ class MainActivity : AppCompatActivity() {
     private var isBound = false
 
     private var isFabShifted = false
+
+    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { importM3u(it) }
+    }
+
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("audio/mpegurl")) { uri ->
+        uri?.let { exportM3u(it) }
+    }
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -63,6 +79,9 @@ class MainActivity : AppCompatActivity() {
         stationViewModel = androidx.lifecycle.ViewModelProvider(this)[StationViewModel::class.java]
         playerViewModel = androidx.lifecycle.ViewModelProvider(this)[PlayerViewModel::class.java]
 
+        val savedSort = SettingsManager.getSortOrder(this)
+        stationViewModel.setSortOrder(savedSort)
+
         setupRecyclerView()
         setupFab()
         setupPlayerBar()
@@ -75,7 +94,8 @@ class MainActivity : AppCompatActivity() {
         adapter = StationAdapter(
             onStationClick = { station -> playStation(station) },
             onFavoriteClick = { station -> stationViewModel.toggleFavorite(station.id) },
-            onLongClick = { station -> showEditDialog(station) }
+            onLongClick = { station -> showEditDialog(station) },
+            onShareClick = { station -> showShareQr(station) }
         )
         binding.stationList.adapter = adapter
         binding.stationList.layoutManager = LinearLayoutManager(this)
@@ -207,15 +227,81 @@ class MainActivity : AppCompatActivity() {
             R.id.action_filter -> {
                 stationViewModel.toggleFilter()
                 val showingFavs = stationViewModel.showFavoritesOnly.value ?: false
+                item.setIcon(if (showingFavs) R.drawable.ic_favorite_off else R.drawable.ic_favorite_off)
                 item.title = if (showingFavs) "Show All" else "Favorites"
+                true
+            }
+            R.id.action_sort -> {
+                showSortDialog()
                 true
             }
             R.id.action_add_preset -> {
                 showAddPresetDialog()
                 true
             }
+            R.id.action_import_m3u -> {
+                importLauncher.launch(arrayOf("*/*"))
+                true
+            }
+            R.id.action_export_m3u -> {
+                exportLauncher.launch("stations.m3u")
+                true
+            }
+            R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
+            R.id.action_about -> {
+                AboutDialog().show(supportFragmentManager, "about")
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun showSortDialog() {
+        val currentSort = stationViewModel.sortOrder.value ?: SettingsManager.SortOrder.DATE_ADDED
+        SortDialog(currentSort) { order ->
+            stationViewModel.setSortOrder(order)
+        }.show(supportFragmentManager, "sort")
+    }
+
+    private fun importM3u(uri: Uri) {
+        try {
+            contentResolver.openInputStream(uri)?.use { stream ->
+                val content = stream.bufferedReader().readText()
+                val stations = M3uHelper.importM3u(content)
+                if (stations.isEmpty()) {
+                    Toast.makeText(this, "No stations found in file", Toast.LENGTH_SHORT).show()
+                } else {
+                    stationViewModel.addStations(stations)
+                    Toast.makeText(this, "Imported ${stations.size} station(s)", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Import failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun exportM3u(uri: Uri) {
+        try {
+            val stations = stationViewModel.displayedStations.value ?: emptyList()
+            if (stations.isEmpty()) {
+                Toast.makeText(this, "No stations to export", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val content = M3uHelper.exportM3u(stations)
+            contentResolver.openOutputStream(uri)?.use { stream ->
+                stream.write(content.toByteArray())
+            }
+            Toast.makeText(this, "Exported ${stations.size} station(s)", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun showShareQr(station: RadioStation) {
+        ShareQrDialog.newInstance(station).show(supportFragmentManager, "share_qr")
     }
 
     private fun showAddPresetDialog() {
