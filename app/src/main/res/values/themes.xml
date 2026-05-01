@@ -12,4 +12,17 @@
         <item name="android:textColorSecondary">@color/colorTextSecondary</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
     </style>
+
+    <style name="Theme.RadioPlayer.FreddieWembley" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#1A1A2E</item>
+        <item name="colorPrimaryDark">#0D0D1A</item>
+        <item name="colorAccent">#FFD700</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:colorBackground">#0A0A12</item>
+        <item name="colorSurface">#12121F</item>
+        <item name="colorOnSurface">#E0E0E0</item>
+        <item name="android:textColorPrimary">#E0E0E0</item>
+        <item name="android:textColorSecondary">#BDBDBD</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+    </style>
 </resources>

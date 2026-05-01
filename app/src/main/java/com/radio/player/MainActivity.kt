@@ -435,10 +435,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyTheme() {
-        when (SettingsManager.getTheme(this)) {
-            SettingsManager.Theme.LIGHT -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            SettingsManager.Theme.DARK -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            SettingsManager.Theme.SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        val theme = SettingsManager.getTheme(this)
+        if (theme == SettingsManager.Theme.FREDDIE_WEMBLEY) {
+            setTheme(R.style.Theme_RadioPlayer_FreddieWembley)
+        } else {
+            when (theme) {
+                SettingsManager.Theme.LIGHT -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                SettingsManager.Theme.DARK -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                SettingsManager.Theme.SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                else -> {}
+            }
         }
     }
 

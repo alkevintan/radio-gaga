@@ -24,6 +24,10 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var alarmViewModel: AlarmViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val theme = SettingsManager.getTheme(this)
+        if (theme == SettingsManager.Theme.FREDDIE_WEMBLEY) {
+            setTheme(R.style.Theme_RadioPlayer_FreddieWembley)
+        }
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -86,10 +90,15 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun applyTheme(theme: SettingsManager.Theme) {
-        when (theme) {
-            SettingsManager.Theme.LIGHT -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            SettingsManager.Theme.DARK -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            SettingsManager.Theme.SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        if (theme == SettingsManager.Theme.FREDDIE_WEMBLEY) {
+            recreate()
+        } else {
+            when (theme) {
+                SettingsManager.Theme.LIGHT -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                SettingsManager.Theme.DARK -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                SettingsManager.Theme.SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                else -> {}
+            }
         }
     }
 

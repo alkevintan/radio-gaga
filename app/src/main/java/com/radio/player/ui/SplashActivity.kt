@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.radio.player.MainActivity
 import com.radio.player.util.SettingsManager
 
@@ -22,10 +23,17 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun applyTheme() {
-        when (SettingsManager.getTheme(this)) {
-            SettingsManager.Theme.LIGHT -> setTheme(com.radio.player.R.style.Theme_RadioPlayer)
-            SettingsManager.Theme.DARK -> setTheme(com.radio.player.R.style.Theme_RadioPlayer)
-            SettingsManager.Theme.SYSTEM -> setTheme(com.radio.player.R.style.Theme_RadioPlayer)
+        val theme = SettingsManager.getTheme(this)
+        if (theme == SettingsManager.Theme.FREDDIE_WEMBLEY) {
+            setTheme(com.radio.player.R.style.Theme_RadioPlayer_Splash_FreddieWembley)
+        } else {
+            when (theme) {
+                SettingsManager.Theme.LIGHT -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                SettingsManager.Theme.DARK -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                SettingsManager.Theme.SYSTEM -> AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                else -> {}
+            }
+            setTheme(com.radio.player.R.style.Theme_RadioPlayer_Splash)
         }
     }
 }

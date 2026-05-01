@@ -19,10 +19,13 @@ object SettingsManager {
         COUNTRY("Country")
     }
 
-    enum class Theme(val label: String) {
+    enum class Theme(val label: String, val themeResId: Int = 0, val splashThemeResId: Int = 0) {
         SYSTEM("System"),
         LIGHT("Light"),
-        DARK("Dark")
+        DARK("Dark"),
+        FREDDIE_WEMBLEY("Freddie Wembley",
+            com.radio.player.R.style.Theme_RadioPlayer_FreddieWembley,
+            com.radio.player.R.style.Theme_RadioPlayer_Splash_FreddieWembley)
     }
 
     private fun prefs(context: Context): SharedPreferences =
