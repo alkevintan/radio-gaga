@@ -15,7 +15,6 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
-import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
@@ -412,8 +411,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateFilterMenuIcon() {
         val isFavsOnly = stationViewModel.showFavoritesOnly.value ?: false
         filterMenuItem?.apply {
-            icon = ContextCompat.getDrawable(this@MainActivity,
-                if (isFavsOnly) R.drawable.ic_favorite else R.drawable.ic_favorite_off)
+            setIcon(if (isFavsOnly) R.drawable.ic_favorite else R.drawable.ic_favorite_off)
             title = if (isFavsOnly) "Show All" else "Favorites"
         }
     }
