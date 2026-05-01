@@ -3,10 +3,6 @@ package com.radio.player.ui
 import android.app.Dialog
 import android.os.Bundle
 import android.content.pm.PackageManager
-import android.view.LayoutInflater
-import android.view.View
-import android.widget.ImageView
-import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.radio.player.R
@@ -21,24 +17,23 @@ class AboutDialog : DialogFragment() {
             "v1.0"
         }
 
-        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_about, null)
-        val icons = listOf(
-            view.findViewById<ImageView>(R.id.iconOptionA),
-            view.findViewById<ImageView>(R.id.iconOptionB),
-            view.findViewById<ImageView>(R.id.iconOptionC),
-            view.findViewById<ImageView>(R.id.iconOptionD)
-        )
-        val labels = listOf("A: Radio Tower", "B: Play + Waves", "C: Headphones", "D: Tuner Dial")
+        val message = """
+            Radio Player $version
 
-        icons.forEachIndexed { index, iv ->
-            iv.setOnClickListener {
-                Toast.makeText(requireContext(), "Selected: ${labels[index]}", Toast.LENGTH_SHORT).show()
-            }
-        }
+            A simple internet radio streaming app for Android.
+
+            • Stream MP3, AAC, and HLS radio stations
+            • Manage and organize your favorite stations
+            • Import/export M3U playlists
+            • Share stations via QR code
+            • Dark mode support
+
+            Built with ExoPlayer, Room, and Material Design.
+        """.trimIndent()
 
         return MaterialAlertDialogBuilder(requireContext())
-            .setTitle("About Radio Player $version")
-            .setView(view)
+            .setTitle(R.string.about)
+            .setMessage(message)
             .setPositiveButton(android.R.string.ok, null)
             .create()
     }
