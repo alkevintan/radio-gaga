@@ -57,7 +57,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupRecordings() {
         binding.recordingsRow.setOnClickListener {
-            RecordingsDialog().show(supportFragmentManager, "recordings")
+            startActivity(android.content.Intent(this, RecordingsActivity::class.java))
         }
         updateRecordingsSummary()
     }

@@ -28,6 +28,7 @@ import com.radio.player.databinding.ActivityMainBinding
 import com.radio.player.service.RadioPlaybackService
 import com.radio.player.ui.AboutDialog
 import com.radio.player.ui.NowPlayingSheet
+import com.radio.player.ui.RecordingsActivity
 import com.radio.player.ui.SettingsActivity
 import com.radio.player.ui.ShareQrDialog
 import com.radio.player.ui.SortDialog
@@ -520,6 +521,10 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_export_m3u -> {
                 exportLauncher.launch("stations.m3u")
+                true
+            }
+            R.id.action_recordings -> {
+                startActivity(Intent(this, RecordingsActivity::class.java))
                 true
             }
             R.id.action_settings -> {
