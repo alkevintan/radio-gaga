@@ -140,7 +140,7 @@ class RadioPlaybackService : LifecycleService() {
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .setUsage(C.USAGE_MEDIA)
                     .build(),
-                true
+                false
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
