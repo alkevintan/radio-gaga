@@ -252,13 +252,12 @@
         android:paddingBottom="8dp">
 
         <ImageButton
-            android:id="@+id/sheetPreviousButton"
+            android:id="@+id/sheetRecordButton"
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Previous"
-            android:src="@drawable/ic_skip_prev"
-            android:visibility="invisible" />
+            android:contentDescription="Record"
+            android:src="@drawable/ic_record" />
 
         <ImageButton
             android:id="@+id/sheetPlayPauseButton"
@@ -279,15 +278,6 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Stop"
             android:src="@drawable/ic_stop" />
-
-        <ImageButton
-            android:id="@+id/sheetRecordButton"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Record"
-            android:src="@drawable/ic_record" />
 
     </LinearLayout>
 
