@@ -64,6 +64,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var lastThemeKey: String? = null
+
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as RadioPlaybackService.RadioBinder
@@ -101,6 +103,16 @@ class MainActivity : AppCompatActivity() {
         observeStations()
 
         startAndBindService()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val currentKey = SettingsManager.getTheme(this).name
+        if (lastThemeKey != null && lastThemeKey != currentKey) {
+            recreate()
+            return
+        }
+        lastThemeKey = currentKey
     }
 
     private fun setupRecyclerView() {
