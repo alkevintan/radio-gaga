@@ -15,8 +15,10 @@ class SpectrumVisualizerView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val barCount = 4
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF1976D2.toInt()
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    init {
+        paint.color = context.getColor(com.radio.player.R.color.spectrum_bar)
     }
 
     private val barHeights = FloatArray(barCount) { MIN_RATIO }

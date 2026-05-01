@@ -17,7 +17,7 @@
             android:layout_height="?attr/actionBarSize"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             app:title="Radio Player"
-            app:titleTextColor="@android:color/white" />
+            app:titleTextColor="@color/colorOnPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -43,7 +43,7 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:text="No stations yet.\nTap + to add a radio station."
-        android:textColor="@android:color/darker_gray"
+        android:textColor="?android:attr/textColorSecondary"
         android:textSize="16sp"
         android:visibility="gone" />
 
@@ -67,7 +67,7 @@
             android:paddingStart="16dp"
             android:paddingEnd="4dp">
 
-<com.radio.player.ui.SpectrumVisualizerView
+            <com.radio.player.ui.SpectrumVisualizerView
                 android:id="@+id/spectrumVisualizer"
                 android:layout_width="48dp"
                 android:layout_height="32dp"
@@ -119,7 +119,7 @@
         android:layout_margin="16dp"
         android:contentDescription="Add station"
         android:src="@drawable/ic_add"
-        app:tint="@android:color/white" />
+        app:tint="@color/colorOnPrimary" />
 
     <LinearLayout
         android:id="@+id/speedDialContainer"
@@ -165,8 +165,8 @@
                 android:contentDescription="Add manually"
                 app:fabSize="mini"
                 app:srcCompat="@drawable/ic_add"
-                app:tint="@android:color/white"
-                app:backgroundTint="#1976D2" />
+                app:tint="@color/colorOnPrimary"
+                app:backgroundTint="@color/colorPrimary" />
 
         </LinearLayout>
 
@@ -204,8 +204,8 @@
                 android:contentDescription="Scan QR code"
                 app:fabSize="mini"
                 app:srcCompat="@drawable/ic_qr_share"
-                app:tint="@android:color/white"
-                app:backgroundTint="#FF6F00" />
+                app:tint="@color/colorOnPrimary"
+                app:backgroundTint="@color/colorAccent" />
 
         </LinearLayout>
 
@@ -215,7 +215,7 @@
         android:id="@+id/speedDialScrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#66000000"
+        android:background="@color/colorScrim"
         android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
