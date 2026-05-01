@@ -34,12 +34,14 @@ class AlarmDialog(
         setupRepeatOptions()
         populateFields()
 
-        binding.btnCancel.setOnClickListener { dismiss() }
-        binding.btnSave.setOnClickListener { saveAlarm() }
-
-        return MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(if (existingAlarm == null) "Add Alarm" else "Edit Alarm")
             .setView(binding.root)
+            .setPositiveButton("Save") { _, _ -> saveAlarm() }
+            .setNegativeButton("Cancel") { _, _ -> dismiss() }
             .create()
+
+        return dialog
     }
 
     private fun loadStations() {
@@ -70,8 +72,8 @@ class AlarmDialog(
     }
 
     private fun setupRepeatOptions() {
-        binding.rbCustom.setOnCheckedChangeListener { _, isChecked ->
-            binding.customDaysLayout.visibility = if (isChecked) View.VISIBLE else View.GONE
+        binding.repeatGroup.setOnCheckedChangeListener { _, checkedId ->
+            binding.customDaysLayout.visibility = if (checkedId == R.id.rbCustom) View.VISIBLE else View.GONE
         }
     }
 
