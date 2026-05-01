@@ -77,10 +77,16 @@ class StationAdapter(
             val isPlaying = station.id == currentlyPlayingId
             binding.playingIndicator.visibility = if (isPlaying) android.view.View.VISIBLE else android.view.View.GONE
 
-            binding.favoriteButton.setImageResource(
-                if (station.isFavorite) android.R.drawable.btn_star_big_on
-                else android.R.drawable.btn_star_big_off
-            )
+            val ctx = binding.root.context
+            if (station.isFavorite) {
+                binding.favoriteButton.setImageResource(com.radio.player.R.drawable.ic_favorite)
+                binding.favoriteButton.setColorFilter(
+                    androidx.core.content.ContextCompat.getColor(ctx, com.radio.player.R.color.colorAccent)
+                )
+            } else {
+                binding.favoriteButton.setImageResource(com.radio.player.R.drawable.ic_favorite_off)
+                binding.favoriteButton.clearColorFilter()
+            }
 
             binding.favoriteButton.setOnClickListener {
                 onFavoriteClick(station)
