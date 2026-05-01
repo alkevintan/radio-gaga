@@ -319,6 +319,8 @@ class RadioPlaybackService : LifecycleService() {
         _errorMessage.value = ""
         _playStartTime.value = 0L
 
+        com.radio.player.util.SettingsManager.setLastPlayedStationId(this, station.id)
+
         updateMediaSessionMetadata(station)
 
         if (com.radio.player.util.SettingsManager.isTuningSoundEnabled(this)) {

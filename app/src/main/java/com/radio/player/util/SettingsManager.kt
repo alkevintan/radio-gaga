@@ -13,6 +13,9 @@ object SettingsManager {
     private const val KEY_AUTO_UPDATE_CHECK = "auto_update_check"
     private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
     private const val KEY_SHOW_STREAM_URLS = "show_stream_urls"
+    private const val KEY_AUTO_PLAY_ON_LAUNCH = "auto_play_on_launch"
+    private const val KEY_AUTO_PLAY_MODE = "auto_play_mode"
+    private const val KEY_LAST_PLAYED_STATION_ID = "last_played_station_id"
 
     enum class SortOrder(val label: String, val isManual: Boolean = false) {
         NAME_ASC("Name (A-Z)"),
@@ -21,6 +24,11 @@ object SettingsManager {
         GENRE("Genre"),
         COUNTRY("Country"),
         MANUAL("Custom (drag to reorder)", isManual = true)
+    }
+
+    enum class AutoPlayMode(val label: String) {
+        LAST_PLAYED("Last played station"),
+        RANDOM("Random station")
     }
 
     enum class Theme(val label: String, val themeResId: Int = 0, val splashThemeResId: Int = 0) {
@@ -86,5 +94,28 @@ object SettingsManager {
 
     fun setShowStreamUrls(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_SHOW_STREAM_URLS, enabled).apply()
+    }
+
+    fun isAutoPlayOnLaunch(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_AUTO_PLAY_ON_LAUNCH, false)
+
+    fun setAutoPlayOnLaunch(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_AUTO_PLAY_ON_LAUNCH, enabled).apply()
+    }
+
+    fun getAutoPlayMode(context: Context): AutoPlayMode {
+        val name = prefs(context).getString(KEY_AUTO_PLAY_MODE, AutoPlayMode.LAST_PLAYED.name)
+        return try { AutoPlayMode.valueOf(name!!) } catch (_: Exception) { AutoPlayMode.LAST_PLAYED }
+    }
+
+    fun setAutoPlayMode(context: Context, mode: AutoPlayMode) {
+        prefs(context).edit().putString(KEY_AUTO_PLAY_MODE, mode.name).apply()
+    }
+
+    fun getLastPlayedStationId(context: Context): Long =
+        prefs(context).getLong(KEY_LAST_PLAYED_STATION_ID, -1L)
+
+    fun setLastPlayedStationId(context: Context, id: Long) {
+        prefs(context).edit().putLong(KEY_LAST_PLAYED_STATION_ID, id).apply()
     }
 }

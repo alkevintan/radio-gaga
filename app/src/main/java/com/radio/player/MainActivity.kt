@@ -77,6 +77,7 @@ class MainActivity : AppCompatActivity() {
 
     private var lastThemeKey: String? = null
     private var lastShowStreamUrls: Boolean? = null
+    private var autoPlayAttempted = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -85,6 +86,7 @@ class MainActivity : AppCompatActivity() {
             playerViewModel.radioService = radioService
             isBound = true
             observePlayerState()
+            tryAutoPlay()
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -99,6 +101,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        if (savedInstanceState != null) autoPlayAttempted = true
 
         setSupportActionBar(binding.toolbar)
 
@@ -333,6 +337,7 @@ class MainActivity : AppCompatActivity() {
         stationViewModel.displayedStations.observe(this) { stations ->
             adapter.submitList(stations)
             binding.emptyView.visibility = if (stations.isEmpty()) View.VISIBLE else View.GONE
+            tryAutoPlay()
         }
 
         stationViewModel.genres.observe(this) { genres ->
@@ -429,6 +434,37 @@ class MainActivity : AppCompatActivity() {
         chrono.start()
     }
 
+    private fun tryAutoPlay() {
+        if (autoPlayAttempted) return
+        if (!isBound || radioService == null) return
+        if (!SettingsManager.isAutoPlayOnLaunch(this)) {
+            autoPlayAttempted = true
+            return
+        }
+        val stations = stationViewModel.displayedStations.value ?: return
+        if (stations.isEmpty()) return
+        autoPlayAttempted = true
+        val station = when (SettingsManager.getAutoPlayMode(this)) {
+            SettingsManager.AutoPlayMode.LAST_PLAYED -> {
+                val id = SettingsManager.getLastPlayedStationId(this)
+                stations.firstOrNull { it.id == id } ?: stations.random()
+            }
+            SettingsManager.AutoPlayMode.RANDOM -> stations.random()
+        }
+        playStation(station)
+    }
+
+    private fun playRandom() {
+        val stations = stationViewModel.displayedStations.value ?: return
+        if (stations.isEmpty()) {
+            Toast.makeText(this, "No stations to shuffle", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val current = radioService?.currentStation?.value?.id
+        val pool = if (stations.size > 1 && current != null) stations.filter { it.id != current } else stations
+        playStation(pool.random())
+    }
+
     private fun playStation(station: RadioStation) {
         binding.playerBar.visibility = View.VISIBLE
         binding.nowPlayingName.text = station.name
@@ -505,6 +541,10 @@ class MainActivity : AppCompatActivity() {
             R.id.action_filter -> {
                 stationViewModel.toggleFilter()
                 updateFilterMenuIcon()
+                true
+            }
+            R.id.action_shuffle -> {
+                playRandom()
                 true
             }
             R.id.action_sort -> {

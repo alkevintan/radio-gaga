@@ -42,6 +42,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsToolbar.setNavigationOnClickListener { finish() }
 
         setupAutoReconnect()
+        setupAutoPlay()
         setupTuningSound()
         setupThemeSelector()
         setupShowStreamUrls()
@@ -85,6 +86,41 @@ class SettingsActivity : AppCompatActivity() {
         binding.autoReconnectSwitch.setOnCheckedChangeListener { _, isChecked ->
             SettingsManager.setAutoReconnect(this, isChecked)
         }
+    }
+
+    private fun setupAutoPlay() {
+        binding.autoPlaySwitch.isChecked = SettingsManager.isAutoPlayOnLaunch(this)
+        updateAutoPlayModeRow()
+        binding.autoPlaySwitch.setOnCheckedChangeListener { _, isChecked ->
+            SettingsManager.setAutoPlayOnLaunch(this, isChecked)
+            updateAutoPlayModeRow()
+        }
+        binding.autoPlayModeRow.setOnClickListener {
+            if (!SettingsManager.isAutoPlayOnLaunch(this)) return@setOnClickListener
+            showAutoPlayModeDialog()
+        }
+    }
+
+    private fun updateAutoPlayModeRow() {
+        val enabled = SettingsManager.isAutoPlayOnLaunch(this)
+        binding.autoPlayModeRow.isEnabled = enabled
+        binding.autoPlayModeRow.alpha = if (enabled) 1.0f else 0.5f
+        binding.autoPlayModeLabel.text = SettingsManager.getAutoPlayMode(this).label
+    }
+
+    private fun showAutoPlayModeDialog() {
+        val options = SettingsManager.AutoPlayMode.entries.toTypedArray()
+        val labels = options.map { it.label }.toTypedArray()
+        val currentIdx = options.indexOf(SettingsManager.getAutoPlayMode(this))
+        AlertDialog.Builder(this)
+            .setTitle("Auto-play mode")
+            .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                SettingsManager.setAutoPlayMode(this, options[which])
+                updateAutoPlayModeRow()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun setupTuningSound() {

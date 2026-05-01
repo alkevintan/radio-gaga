@@ -16,6 +16,12 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_shuffle"
+        android:icon="@drawable/ic_shuffle"
+        android:title="Shuffle"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_sort"
         android:title="@string/sort_by"
         app:showAsAction="never" />
