@@ -85,31 +85,24 @@ object AlarmScheduler {
         }
 
         val dayBits = alarm.repeatDays
+        val includeToday = calendar.timeInMillis > now
         val currentDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val daysToAdd = findNextDay(dayBits, currentDayOfWeek, calendar.timeInMillis <= now)
+        val dayMapping = intArrayOf(0, 1, 2, 4, 8, 16, 32, 64)
 
-        calendar.add(Calendar.DAY_OF_YEAR, daysToAdd)
-        return calendar.timeInMillis
-    }
-
-    private fun findNextDay(dayBits: Int, currentDay: Int, includeToday: Boolean): Int {
-        val dayMapping = mapOf(
-            Calendar.SUNDAY to 1,
-            Calendar.MONDAY to 2,
-            Calendar.TUESDAY to 4,
-            Calendar.WEDNESDAY to 8,
-            Calendar.THURSDAY to 16,
-            Calendar.FRIDAY to 32,
-            Calendar.SATURDAY to 64
-        )
-
-        for (i in 0 until 7) {
-            val checkDay = if (includeToday) (currentDay + i - 1) % 7 + 1 else (currentDay + i) % 7 + 1
-            val bit = dayMapping[checkDay] ?: continue
+        val startOffset = if (includeToday) 0 else 1
+        for (offset in startOffset until 7 + startOffset) {
+            val checkDay = ((currentDayOfWeek - 1 + offset) % 7) + 1
+            val bit = dayMapping[checkDay]
             if (dayBits and bit != 0) {
-                return i
+                calendar.add(Calendar.DAY_OF_YEAR, offset)
+                break
             }
         }
-        return 7
+
+        if (calendar.timeInMillis <= now) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+        }
+
+        return calendar.timeInMillis
     }
 }
