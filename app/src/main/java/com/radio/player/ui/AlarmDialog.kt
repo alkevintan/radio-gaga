@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.fragment.app.DialogFragment
@@ -18,14 +17,48 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class AlarmDialog(
-    private val existingAlarm: Alarm? = null,
-    private val onSave: (Alarm) -> Unit
-) : DialogFragment() {
+class AlarmDialog : DialogFragment() {
 
     private lateinit var binding: DialogAlarmBinding
     private var selectedStationId: Long = -1
     private var stationIds: List<Long> = emptyList()
+
+    private val existingAlarm: Alarm?
+        get() = arguments?.let { args ->
+            if (args.containsKey("alarm_id")) Alarm(
+                id = args.getLong("alarm_id"),
+                stationId = args.getLong("alarm_station_id"),
+                hour = args.getInt("alarm_hour"),
+                minute = args.getInt("alarm_minute"),
+                repeatDays = args.getInt("alarm_repeat_days"),
+                isEnabled = args.getBoolean("alarm_enabled"),
+                createdAt = args.getLong("alarm_created_at")
+            ) else null
+        }
+
+    private var onSave: ((Alarm) -> Unit)? = null
+
+    fun setOnSaveListener(listener: (Alarm) -> Unit) {
+        onSave = listener
+    }
+
+    companion object {
+        fun newInstance(alarm: Alarm? = null): AlarmDialog {
+            val dialog = AlarmDialog()
+            if (alarm != null) {
+                dialog.arguments = Bundle().apply {
+                    putLong("alarm_id", alarm.id)
+                    putLong("alarm_station_id", alarm.stationId)
+                    putInt("alarm_hour", alarm.hour)
+                    putInt("alarm_minute", alarm.minute)
+                    putInt("alarm_repeat_days", alarm.repeatDays)
+                    putBoolean("alarm_enabled", alarm.isEnabled)
+                    putLong("alarm_created_at", alarm.createdAt)
+                }
+            }
+            return dialog
+        }
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         binding = DialogAlarmBinding.inflate(LayoutInflater.from(requireContext()))
@@ -64,7 +97,7 @@ class AlarmDialog(
                 }
 
                 if (existingAlarm != null) {
-                    val index = stationIds.indexOf(existingAlarm.stationId)
+                    val index = stationIds.indexOf(existingAlarm!!.stationId)
                     if (index >= 0) binding.stationSpinner.setSelection(index)
                 }
             }
@@ -79,10 +112,10 @@ class AlarmDialog(
 
     private fun populateFields() {
         if (existingAlarm != null) {
-            binding.timePicker.hour = existingAlarm.hour
-            binding.timePicker.minute = existingAlarm.minute
+            binding.timePicker.hour = existingAlarm!!.hour
+            binding.timePicker.minute = existingAlarm!!.minute
 
-            when (existingAlarm.repeatDays) {
+            when (existingAlarm!!.repeatDays) {
                 0 -> binding.rbOnce.isChecked = true
                 127 -> binding.rbDaily.isChecked = true
                 62 -> binding.rbWeekdays.isChecked = true
@@ -90,13 +123,13 @@ class AlarmDialog(
                 else -> {
                     binding.rbCustom.isChecked = true
                     binding.customDaysLayout.visibility = View.VISIBLE
-                    if (existingAlarm.repeatDays and 1 != 0) binding.cbSun.isChecked = true
-                    if (existingAlarm.repeatDays and 2 != 0) binding.cbMon.isChecked = true
-                    if (existingAlarm.repeatDays and 4 != 0) binding.cbTue.isChecked = true
-                    if (existingAlarm.repeatDays and 8 != 0) binding.cbWed.isChecked = true
-                    if (existingAlarm.repeatDays and 16 != 0) binding.cbThu.isChecked = true
-                    if (existingAlarm.repeatDays and 32 != 0) binding.cbFri.isChecked = true
-                    if (existingAlarm.repeatDays and 64 != 0) binding.cbSat.isChecked = true
+                    if (existingAlarm!!.repeatDays and 1 != 0) binding.cbSun.isChecked = true
+                    if (existingAlarm!!.repeatDays and 2 != 0) binding.cbMon.isChecked = true
+                    if (existingAlarm!!.repeatDays and 4 != 0) binding.cbTue.isChecked = true
+                    if (existingAlarm!!.repeatDays and 8 != 0) binding.cbWed.isChecked = true
+                    if (existingAlarm!!.repeatDays and 16 != 0) binding.cbThu.isChecked = true
+                    if (existingAlarm!!.repeatDays and 32 != 0) binding.cbFri.isChecked = true
+                    if (existingAlarm!!.repeatDays and 64 != 0) binding.cbSat.isChecked = true
                 }
             }
         }
@@ -138,7 +171,7 @@ class AlarmDialog(
             isEnabled = existingAlarm?.isEnabled ?: true
         )
 
-        onSave(alarm)
+        onSave?.invoke(alarm)
         dismiss()
     }
 }

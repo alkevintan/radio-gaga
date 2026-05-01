@@ -157,13 +157,15 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showAlarmDialog(alarm: Alarm?) {
-        AlarmDialog(alarm) { newAlarm ->
+        val dialog = AlarmDialog.newInstance(alarm)
+        dialog.setOnSaveListener { newAlarm ->
             if (alarm == null) {
                 alarmViewModel.addAlarm(newAlarm)
             } else {
                 alarmViewModel.updateAlarm(newAlarm)
             }
-        }.show(supportFragmentManager, "alarm_dialog")
+        }
+        dialog.show(supportFragmentManager, "alarm_dialog")
     }
 
     private fun showDeleteDialog(alarm: Alarm) {
