@@ -121,7 +121,6 @@ class MainActivity : AppCompatActivity() {
                 station?.let {
                     binding.playerBar.visibility = View.VISIBLE
                     binding.nowPlayingName.text = it.name
-                    binding.nowPlayingGenre.text = it.genre.ifBlank { it.country }
                 }
             }
         }
@@ -153,7 +152,6 @@ class MainActivity : AppCompatActivity() {
     private fun playStation(station: RadioStation) {
         binding.playerBar.visibility = View.VISIBLE
         binding.nowPlayingName.text = station.name
-        binding.nowPlayingGenre.text = station.genre.ifBlank { station.country }
         adapter.setCurrentlyPlaying(station.id)
         playerViewModel.playStation(station)
     }
