@@ -3,7 +3,10 @@ package com.radio.player.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -12,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.ActionMode
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,12 +35,44 @@ class RecordingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRecordingsBinding
     private lateinit var adapter: RecordingsAdapter
     private var pendingExportFile: File? = null
+    private var pendingBatchExport: List<File> = emptyList()
+    private var actionMode: ActionMode? = null
 
     private val exportLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("audio/*")
     ) { uri ->
         uri?.let { exportTo(it) }
         pendingExportFile = null
+    }
+
+    private val treeLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { treeUri ->
+        val files = pendingBatchExport
+        pendingBatchExport = emptyList()
+        if (treeUri != null && files.isNotEmpty()) batchExportTo(treeUri, files)
+    }
+
+    private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            mode.menuInflater.inflate(R.menu.menu_recordings_action, menu)
+            return true
+        }
+        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean = false
+        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+            val sel = adapter.selectedFiles()
+            if (sel.isEmpty()) return false
+            return when (item.itemId) {
+                R.id.action_delete_all -> { confirmBatchDelete(sel); true }
+                R.id.action_share_all -> { batchShare(sel); true }
+                R.id.action_export_all -> { batchExport(sel); true }
+                else -> false
+            }
+        }
+        override fun onDestroyActionMode(mode: ActionMode) {
+            adapter.exitSelection()
+            actionMode = null
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +90,8 @@ class RecordingsActivity : AppCompatActivity() {
 
         adapter = RecordingsAdapter(
             onPlay = { playFile(it) },
-            onMenu = { anchor, file -> showPopup(anchor, file) }
+            onMenu = { anchor, file -> showPopup(anchor, file) },
+            onSelectionChange = { onAdapterSelectionChange() }
         )
         binding.recordingsList.layoutManager = LinearLayoutManager(this)
         binding.recordingsList.adapter = adapter
@@ -69,6 +106,16 @@ class RecordingsActivity : AppCompatActivity() {
         val files = RecordingManager.listRecordings(this)
         adapter.submit(files)
         binding.recordingsEmpty.visibility = if (files.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun onAdapterSelectionChange() {
+        val count = adapter.selectionCount()
+        if (count == 0) {
+            actionMode?.finish()
+        } else {
+            if (actionMode == null) actionMode = startSupportActionMode(actionModeCallback)
+            actionMode?.title = count.toString()
+        }
     }
 
     private fun playFile(file: File) {
@@ -134,6 +181,76 @@ class RecordingsActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun confirmBatchDelete(files: List<File>) {
+        val n = files.size
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Delete recordings")
+            .setMessage("Delete $n recording${if (n == 1) "" else "s"}? This cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                var ok = 0
+                for (f in files) if (f.delete()) ok++
+                Toast.makeText(this, "Deleted $ok", Toast.LENGTH_SHORT).show()
+                actionMode?.finish()
+                refresh()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun batchShare(files: List<File>) {
+        try {
+            val uris = ArrayList(files.map { providerUri(it) })
+            val intent = Intent(Intent.ACTION_SEND_MULTIPLE)
+                .setType("audio/*")
+                .putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            startActivity(Intent.createChooser(intent, "Share recordings"))
+        } catch (e: Exception) {
+            Toast.makeText(this, "Share failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun batchExport(files: List<File>) {
+        pendingBatchExport = files
+        try {
+            treeLauncher.launch(null)
+        } catch (e: Exception) {
+            Toast.makeText(this, "No folder picker available", Toast.LENGTH_SHORT).show()
+            pendingBatchExport = emptyList()
+        }
+    }
+
+    private fun batchExportTo(treeUri: Uri, files: List<File>) {
+        val docId = try {
+            DocumentsContract.getTreeDocumentId(treeUri)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Invalid folder", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
+        var ok = 0
+        var failed = 0
+        for (file in files) {
+            try {
+                val newDocUri = DocumentsContract.createDocument(
+                    contentResolver, parentUri, "audio/*", file.name
+                ) ?: throw IllegalStateException("create failed")
+                contentResolver.openOutputStream(newDocUri)?.use { out ->
+                    FileInputStream(file).use { it.copyTo(out) }
+                } ?: throw IllegalStateException("open failed")
+                ok++
+            } catch (_: Exception) {
+                failed++
+            }
+        }
+        val msg = buildString {
+            append("Exported $ok")
+            if (failed > 0) append(", $failed failed")
+        }
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        actionMode?.finish()
+    }
+
     private fun showPopup(anchor: View, file: File) {
         val popup = PopupMenu(this, anchor)
         popup.menu.add(0, 1, 0, "Play")
@@ -157,16 +274,53 @@ class RecordingsActivity : AppCompatActivity() {
 
     private class RecordingsAdapter(
         private val onPlay: (File) -> Unit,
-        private val onMenu: (anchor: View, file: File) -> Unit
+        private val onMenu: (anchor: View, file: File) -> Unit,
+        private val onSelectionChange: () -> Unit
     ) : RecyclerView.Adapter<RecordingsAdapter.VH>() {
 
         private val items = mutableListOf<File>()
+        private val selected = LinkedHashSet<File>()
+        private var inSelectionMode = false
         private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         fun submit(list: List<File>) {
             items.clear()
             items.addAll(list)
+            val present = items.toSet()
+            val before = selected.size
+            selected.retainAll(present)
+            if (selected.isEmpty()) inSelectionMode = false
             notifyDataSetChanged()
+            if (selected.size != before) onSelectionChange()
+        }
+
+        fun selectedFiles(): List<File> = selected.toList()
+        fun selectionCount(): Int = selected.size
+
+        fun exitSelection() {
+            if (!inSelectionMode && selected.isEmpty()) return
+            selected.clear()
+            inSelectionMode = false
+            notifyDataSetChanged()
+            onSelectionChange()
+        }
+
+        private fun startSelection(file: File) {
+            inSelectionMode = true
+            selected.add(file)
+            notifyDataSetChanged()
+            onSelectionChange()
+        }
+
+        private fun toggleSelect(file: File) {
+            if (selected.contains(file)) selected.remove(file) else selected.add(file)
+            if (selected.isEmpty()) {
+                exitSelection()
+            } else {
+                val idx = items.indexOf(file)
+                if (idx >= 0) notifyItemChanged(idx)
+                onSelectionChange()
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -181,8 +335,17 @@ class RecordingsActivity : AppCompatActivity() {
             val sizeKb = f.length() / 1024
             val sizeText = if (sizeKb >= 1024) "${sizeKb / 1024} MB" else "$sizeKb KB"
             holder.meta.text = "$sizeText  ·  ${dateFormat.format(Date(f.lastModified()))}"
-            holder.itemView.setOnClickListener { onPlay(f) }
-            holder.menu.setOnClickListener { onMenu(it, f) }
+            holder.itemView.isActivated = selected.contains(f)
+            holder.itemView.setOnClickListener {
+                if (inSelectionMode) toggleSelect(f) else onPlay(f)
+            }
+            holder.itemView.setOnLongClickListener {
+                if (inSelectionMode) toggleSelect(f) else startSelection(f)
+                true
+            }
+            holder.menu.setOnClickListener {
+                if (inSelectionMode) toggleSelect(f) else onMenu(it, f)
+            }
         }
 
         override fun getItemCount(): Int = items.size
