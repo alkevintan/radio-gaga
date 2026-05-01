@@ -11,6 +11,6 @@
     <color name="colorBackground">#FAFAFA</color>
     <color name="colorScrim">#66000000</color>
     <color name="colorDragHandle">#757575</color>
-    <color name="ic_launcher_background">#1976D2</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
     <color name="spectrum_bar">#1976D2</color>
 </resources>
