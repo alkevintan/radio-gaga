@@ -280,6 +280,50 @@
             android:contentDescription="Stop"
             android:src="@drawable/ic_stop" />
 
+        <ImageButton
+            android:id="@+id/sheetRecordButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Record"
+            android:src="@drawable/ic_record" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/sheetRecordingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/indicator_dot_red" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="REC"
+            android:textColor="#E53935"
+            android:textStyle="bold"
+            android:textSize="12sp" />
+
+        <Chronometer
+            android:id="@+id/sheetRecordingDuration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="monospace"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="12sp" />
+
     </LinearLayout>
 
     <ProgressBar

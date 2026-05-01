@@ -13,6 +13,7 @@ import com.radio.player.R
 import com.radio.player.data.Alarm
 import com.radio.player.databinding.ActivitySettingsBinding
 import com.radio.player.viewmodel.AlarmViewModel
+import com.radio.player.util.RecordingManager
 import com.radio.player.util.SettingsManager
 import com.radio.player.util.UpdateChecker
 import android.widget.Toast
@@ -45,7 +46,31 @@ class SettingsActivity : AppCompatActivity() {
         setupThemeSelector()
         setupShowStreamUrls()
         setupUpdates()
+        setupRecordings()
         setupAlarms()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateRecordingsSummary()
+    }
+
+    private fun setupRecordings() {
+        binding.recordingsRow.setOnClickListener {
+            RecordingsDialog().show(supportFragmentManager, "recordings")
+        }
+        updateRecordingsSummary()
+    }
+
+    private fun updateRecordingsSummary() {
+        val files = RecordingManager.listRecordings(this)
+        binding.recordingsRowSummary.text = if (files.isEmpty()) {
+            "No recordings yet"
+        } else {
+            val totalKb = files.sumOf { it.length() } / 1024
+            val sizeText = if (totalKb >= 1024) "${totalKb / 1024} MB" else "$totalKb KB"
+            "${files.size} file${if (files.size == 1) "" else "s"}  ·  $sizeText"
+        }
     }
 
     private fun setupUpdates() {

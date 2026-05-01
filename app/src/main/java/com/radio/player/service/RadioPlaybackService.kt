@@ -34,6 +34,10 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.radio.player.util.HttpClientFactory
+import com.radio.player.util.RecordingManager
+import com.radio.player.util.SwitchableFileSink
+import com.radio.player.util.TeeingDataSourceFactory
+import java.io.File
 import com.google.android.exoplayer2.util.Util
 import com.radio.player.MainActivity
 import com.radio.player.R
@@ -72,6 +76,14 @@ class RadioPlaybackService : LifecycleService() {
 
     private val _playStartTime = MutableStateFlow(0L)
     val playStartTime: StateFlow<Long> = _playStartTime
+
+    private val recordingSink = SwitchableFileSink()
+    private val _isRecording = MutableStateFlow(false)
+    val isRecording: StateFlow<Boolean> = _isRecording
+    private val _recordingStartTime = MutableStateFlow(0L)
+    val recordingStartTime: StateFlow<Long> = _recordingStartTime
+    private val _lastRecordingFile = MutableStateFlow<File?>(null)
+    val lastRecordingFile: StateFlow<File?> = _lastRecordingFile
 
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var loudnessEnhancerSession: Int = -1
@@ -181,6 +193,9 @@ class RadioPlaybackService : LifecycleService() {
                 _isBuffering.value = state == Player.STATE_BUFFERING
                 if (state == Player.STATE_READY) {
                     _isError.value = false
+                }
+                if (state == Player.STATE_IDLE && _isRecording.value) {
+                    stopRecording()
                 }
                 updateMediaSessionPlaybackState()
             }
@@ -298,6 +313,7 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     fun playStation(station: RadioStation) {
+        if (_isRecording.value) stopRecording()
         _currentStation.value = station
         _isError.value = false
         _errorMessage.value = ""
@@ -322,7 +338,8 @@ class RadioPlaybackService : LifecycleService() {
         val httpDataSourceFactory = OkHttpDataSource.Factory(HttpClientFactory.get(this))
             .setUserAgent(userAgent)
 
-        val dataSourceFactory = DefaultDataSourceFactory(this, httpDataSourceFactory)
+        val baseFactory = DefaultDataSourceFactory(this, httpDataSourceFactory)
+        val dataSourceFactory = TeeingDataSourceFactory(baseFactory, recordingSink)
 
         val mediaSource: MediaSource = if (station.streamUrl.contains(".m3u8")) {
             HlsMediaSource.Factory(dataSourceFactory)
@@ -431,6 +448,7 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     fun stopPlayback() {
+        if (_isRecording.value) stopRecording()
         exoPlayer?.stop()
         _isPlaying.value = false
         _isBuffering.value = false
@@ -452,6 +470,7 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     fun release() {
+        if (_isRecording.value) stopRecording()
         try { loudnessEnhancer?.release() } catch (_: Exception) {}
         loudnessEnhancer = null
         loudnessEnhancerSession = -1
@@ -460,6 +479,41 @@ class RadioPlaybackService : LifecycleService() {
         mediaSession.release()
         releaseWakeLock()
         abandonAudioFocus()
+    }
+
+    fun startRecording(): RecordingResult {
+        val station = _currentStation.value
+            ?: return RecordingResult.Error("No station selected")
+        if (RecordingManager.isHls(station.streamUrl)) {
+            return RecordingResult.Error("Recording HLS streams not supported yet")
+        }
+        if (_isRecording.value) return RecordingResult.Error("Already recording")
+        if (!_isPlaying.value && !_isBuffering.value) {
+            return RecordingResult.Error("Start playback first")
+        }
+        return try {
+            val file = RecordingManager.newRecordingFile(this, station)
+            recordingSink.start(file)
+            _lastRecordingFile.value = file
+            _recordingStartTime.value = System.currentTimeMillis()
+            _isRecording.value = true
+            RecordingResult.Success(file)
+        } catch (e: Exception) {
+            RecordingResult.Error(e.message ?: "Failed to start recording")
+        }
+    }
+
+    fun stopRecording(): File? {
+        if (!_isRecording.value) return null
+        val file = recordingSink.stop()
+        _isRecording.value = false
+        _recordingStartTime.value = 0L
+        return file
+    }
+
+    sealed class RecordingResult {
+        data class Success(val file: File) : RecordingResult()
+        data class Error(val message: String) : RecordingResult()
     }
 
     override fun onDestroy() {

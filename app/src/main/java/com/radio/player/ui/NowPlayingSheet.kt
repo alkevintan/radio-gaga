@@ -138,6 +138,21 @@ class NowPlayingSheet : BottomSheetDialogFragment() {
             radioService?.stopPlayback()
             dismiss()
         }
+
+        binding.sheetRecordButton.setOnClickListener {
+            val service = radioService ?: return@setOnClickListener
+            if (service.isRecording.value) {
+                val file = service.stopRecording()
+                if (file != null) {
+                    Toast.makeText(requireContext(), "Saved ${file.name}", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                val result = service.startRecording()
+                if (result is RadioPlaybackService.RecordingResult.Error) {
+                    Toast.makeText(requireContext(), result.message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun setupVolumeSlider(initialGain: Float) {
@@ -210,6 +225,30 @@ class NowPlayingSheet : BottomSheetDialogFragment() {
                 _binding?.sheetBufferingIndicator?.visibility =
                     if (buffering) View.VISIBLE else View.GONE
             }
+        }
+
+        lifecycleScope.launch {
+            radioService?.isRecording?.collect { recording ->
+                updateRecordingUi(recording)
+            }
+        }
+    }
+
+    private fun updateRecordingUi(recording: Boolean) {
+        val b = _binding ?: return
+        b.sheetRecordButton.setImageResource(
+            if (recording) R.drawable.ic_stop_record else R.drawable.ic_record
+        )
+        b.sheetRecordingIndicator.visibility = if (recording) View.VISIBLE else View.GONE
+        if (recording) {
+            val start = radioService?.recordingStartTime?.value ?: 0L
+            if (start > 0L) {
+                val elapsed = System.currentTimeMillis() - start
+                b.sheetRecordingDuration.base = android.os.SystemClock.elapsedRealtime() - elapsed
+                b.sheetRecordingDuration.start()
+            }
+        } else {
+            b.sheetRecordingDuration.stop()
         }
     }
 
