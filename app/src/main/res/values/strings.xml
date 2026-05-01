@@ -10,4 +10,5 @@
     <string name="share_station">Share Station</string>
     <string name="import_m3u">Import M3U</string>
     <string name="export_m3u">Export M3U</string>
+    <string name="splash_subtitle">Someone still loves you</string>
 </resources>
