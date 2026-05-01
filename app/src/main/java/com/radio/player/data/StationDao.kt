@@ -47,6 +47,15 @@ interface StationDao {
     @Update
     suspend fun update(station: RadioStation)
 
+    @Update
+    suspend fun updateAll(stations: List<RadioStation>)
+
+    @Query("UPDATE stations SET `order` = :order WHERE id = :id")
+    suspend fun setOrder(id: Long, order: Int)
+
+    @Query("UPDATE stations SET volumeGain = :gain WHERE id = :id")
+    suspend fun setVolumeGain(id: Long, gain: Float)
+
     @Delete
     suspend fun delete(station: RadioStation)
 

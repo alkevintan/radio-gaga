@@ -19,6 +19,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.zxing.integration.android.IntentIntegrator
 import com.radio.player.data.RadioStation
@@ -52,6 +54,9 @@ class MainActivity : AppCompatActivity() {
     private var isSpeedDialOpen = false
     private var filterMenuItem: MenuItem? = null
     private var searchMenuItem: MenuItem? = null
+    private lateinit var itemTouchHelper: ItemTouchHelper
+    private var dragInProgress = false
+    private var orderChangedDuringDrag = false
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { importM3u(it) }
@@ -151,15 +156,73 @@ class MainActivity : AppCompatActivity() {
             onStationClick = { station -> playStation(station) },
             onFavoriteClick = { station -> stationViewModel.toggleFavorite(station.id) },
             onLongClick = { station -> showEditDialog(station) },
-            onShareClick = { station -> showShareQr(station) }
+            onShareClick = { station -> showShareQr(station) },
+            onStartDrag = { holder -> itemTouchHelper.startDrag(holder) }
         )
         binding.stationList.adapter = adapter
         binding.stationList.layoutManager = LinearLayoutManager(this)
+
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun getMovementFlags(rv: RecyclerView, vh: RecyclerView.ViewHolder): Int {
+                return if (canReorder()) super.getMovementFlags(rv, vh) else 0
+            }
+
+            override fun isLongPressDragEnabled(): Boolean = false
+
+            override fun onMove(
+                rv: RecyclerView,
+                vh: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val from = vh.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
+                adapter.moveItem(from, to)
+                orderChangedDuringDrag = true
+                return true
+            }
+
+            override fun onSwiped(vh: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun onSelectedChanged(vh: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(vh, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    dragInProgress = true
+                }
+            }
+
+            override fun clearView(rv: RecyclerView, vh: RecyclerView.ViewHolder) {
+                super.clearView(rv, vh)
+                if (dragInProgress && orderChangedDuringDrag) {
+                    stationViewModel.reorderStations(adapter.snapshotOrder())
+                }
+                dragInProgress = false
+                orderChangedDuringDrag = false
+            }
+        }
+        itemTouchHelper = ItemTouchHelper(callback)
+        itemTouchHelper.attachToRecyclerView(binding.stationList)
 
         binding.swipeRefresh.setOnRefreshListener {
             stationViewModel.showFavoritesOnly.value = stationViewModel.showFavoritesOnly.value ?: false
             binding.swipeRefresh.isRefreshing = false
         }
+    }
+
+    private fun canReorder(): Boolean {
+        val sort = stationViewModel.sortOrder.value ?: return false
+        if (!sort.isManual) return false
+        if (stationViewModel.showFavoritesOnly.value == true) return false
+        if (stationViewModel.getSelectedGenre() != null) return false
+        val query = (searchMenuItem?.actionView as? androidx.appcompat.widget.SearchView)?.query?.toString().orEmpty()
+        if (query.isNotEmpty()) return false
+        return true
+    }
+
+    private fun updateDragMode() {
+        adapter.setDragHandlesVisible(canReorder())
     }
 
     private fun setupFab() {
@@ -283,7 +346,12 @@ class MainActivity : AppCompatActivity() {
             tabLayout.visibility = if (genres.isEmpty()) View.GONE else View.VISIBLE
         }
 
-        stationViewModel.showFavoritesOnly.observe(this) { updateFilterMenuIcon() }
+        stationViewModel.showFavoritesOnly.observe(this) {
+            updateFilterMenuIcon()
+            updateDragMode()
+        }
+
+        stationViewModel.sortOrder.observe(this) { updateDragMode() }
     }
 
     private fun setupGenreTabs() {
@@ -291,6 +359,7 @@ class MainActivity : AppCompatActivity() {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 val genre = if (tab.position == 0) null else tab.text?.toString()
                 stationViewModel.setSelectedGenre(genre)
+                updateDragMode()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) {}
             override fun onTabReselected(tab: TabLayout.Tab) {}
@@ -386,15 +455,18 @@ class MainActivity : AppCompatActivity() {
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 stationViewModel.setSearchQuery(query ?: "")
+                updateDragMode()
                 return true
             }
             override fun onQueryTextChange(newText: String?): Boolean {
                 stationViewModel.setSearchQuery(newText ?: "")
+                updateDragMode()
                 return true
             }
         })
         searchView?.setOnCloseListener {
             stationViewModel.setSearchQuery("")
+            updateDragMode()
             false
         }
 

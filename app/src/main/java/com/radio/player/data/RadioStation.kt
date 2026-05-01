@@ -14,5 +14,6 @@ data class RadioStation(
     val favicon: String = "",
     val isFavorite: Boolean = false,
     val order: Int = 0,
+    val volumeGain: Float = 0f,
     val createdAt: Long = System.currentTimeMillis()
 )

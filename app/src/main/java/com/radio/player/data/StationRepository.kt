@@ -17,6 +17,7 @@ class StationRepository(private val dao: StationDao) {
         SettingsManager.SortOrder.DATE_ADDED -> dao.getAllStationsByDateAdded()
         SettingsManager.SortOrder.GENRE -> dao.getAllStationsByGenre()
         SettingsManager.SortOrder.COUNTRY -> dao.getAllStationsByCountry()
+        SettingsManager.SortOrder.MANUAL -> dao.getAllStations()
     }
 
     val favoriteStations: LiveData<List<RadioStation>> = dao.getFavoriteStations()
@@ -33,6 +34,13 @@ class StationRepository(private val dao: StationDao) {
         val station = dao.getStationById(id) ?: return
         dao.setFavorite(id, !station.isFavorite)
     }
+
+    suspend fun reorder(reordered: List<RadioStation>) {
+        val withOrders = reordered.mapIndexed { index, st -> st.copy(order = index) }
+        dao.updateAll(withOrders)
+    }
+
+    suspend fun setVolumeGain(id: Long, gain: Float) = dao.setVolumeGain(id, gain)
 
     suspend fun getById(id: Long): RadioStation? = dao.getStationById(id)
 }

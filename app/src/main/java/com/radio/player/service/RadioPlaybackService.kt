@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioManager.OnAudioFocusChangeListener
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -68,6 +69,12 @@ class RadioPlaybackService : LifecycleService() {
 
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage
+
+    private val _playStartTime = MutableStateFlow(0L)
+    val playStartTime: StateFlow<Long> = _playStartTime
+
+    private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var loudnessEnhancerSession: Int = -1
 
     companion object {
         const val CHANNEL_ID = "radio_playback_channel"
@@ -163,6 +170,9 @@ class RadioPlaybackService : LifecycleService() {
         exoPlayer?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
+                if (isPlaying && _playStartTime.value == 0L) {
+                    _playStartTime.value = System.currentTimeMillis()
+                }
                 updateMediaSessionPlaybackState()
                 updateNotification()
             }
@@ -178,6 +188,11 @@ class RadioPlaybackService : LifecycleService() {
             override fun onPlayerError(error: PlaybackException) {
                 _isError.value = true
                 _errorMessage.value = error.message ?: "Unknown error"
+            }
+
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                rebuildLoudnessEnhancer(audioSessionId)
+                applyVolumeGain(_currentStation.value?.volumeGain ?: 0f)
             }
         })
     }
@@ -286,6 +301,7 @@ class RadioPlaybackService : LifecycleService() {
         _currentStation.value = station
         _isError.value = false
         _errorMessage.value = ""
+        _playStartTime.value = 0L
 
         updateMediaSessionMetadata(station)
 
@@ -322,9 +338,42 @@ class RadioPlaybackService : LifecycleService() {
             play()
         }
 
+        applyVolumeGain(station.volumeGain)
         requestAudioFocus()
         acquireWakeLock()
         startForeground()
+    }
+
+    fun setLiveVolumeGain(gainDb: Float) {
+        val current = _currentStation.value
+        if (current != null) {
+            _currentStation.value = current.copy(volumeGain = gainDb)
+        }
+        applyVolumeGain(gainDb)
+    }
+
+    private fun applyVolumeGain(gainDb: Float) {
+        val player = exoPlayer ?: return
+        val clamped = gainDb.coerceIn(-24f, 24f)
+        if (clamped <= 0f) {
+            player.volume = Math.pow(10.0, clamped.toDouble() / 20.0).toFloat().coerceIn(0f, 1f)
+            try { loudnessEnhancer?.setEnabled(false) } catch (_: Exception) {}
+        } else {
+            player.volume = 1.0f
+            try {
+                rebuildLoudnessEnhancer(player.audioSessionId)
+                loudnessEnhancer?.setTargetGain((clamped * 100).toInt())
+                loudnessEnhancer?.setEnabled(true)
+            } catch (_: Exception) { }
+        }
+    }
+
+    private fun rebuildLoudnessEnhancer(audioSessionId: Int) {
+        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return
+        if (loudnessEnhancerSession == audioSessionId && loudnessEnhancer != null) return
+        try { loudnessEnhancer?.release() } catch (_: Exception) {}
+        loudnessEnhancer = try { LoudnessEnhancer(audioSessionId) } catch (_: Exception) { null }
+        loudnessEnhancerSession = audioSessionId
     }
 
     private var tuningMediaPlayer: android.media.MediaPlayer? = null
@@ -385,6 +434,7 @@ class RadioPlaybackService : LifecycleService() {
         exoPlayer?.stop()
         _isPlaying.value = false
         _isBuffering.value = false
+        _playStartTime.value = 0L
         releaseWakeLock()
         abandonAudioFocus()
         mediaSession.setPlaybackState(
@@ -402,6 +452,9 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     fun release() {
+        try { loudnessEnhancer?.release() } catch (_: Exception) {}
+        loudnessEnhancer = null
+        loudnessEnhancerSession = -1
         exoPlayer?.release()
         exoPlayer = null
         mediaSession.release()
@@ -500,6 +553,7 @@ class RadioPlaybackService : LifecycleService() {
                     .setShowActionsInCompactView(0, 1)
             )
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setShowWhen(false)
             .setOngoing(playing)
 

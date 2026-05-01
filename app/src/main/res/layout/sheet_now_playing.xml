@@ -58,6 +58,16 @@
         android:textSize="14sp"
         android:textColor="?android:attr/textColorSecondary" />
 
+    <TextView
+        android:id="@+id/sheetElapsedTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:textSize="13sp"
+        android:fontFamily="monospace"
+        android:textColor="?android:attr/textColorSecondary" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
@@ -185,6 +195,52 @@
         android:layout_height="1dp"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="12dp"
+        android:background="?android:attr/listDivider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Volume"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/sheetVolumeSlider"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            android:valueFrom="-12"
+            android:valueTo="12"
+            android:value="0"
+            android:stepSize="1" />
+
+        <TextView
+            android:id="@+id/sheetVolumeLabel"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:text="0 dB" />
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
         android:background="?android:attr/listDivider" />
 
     <LinearLayout

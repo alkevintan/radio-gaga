@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
 import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
@@ -19,7 +20,12 @@ class SpectrumVisualizerView @JvmOverloads constructor(
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     init {
-        paint.color = ContextCompat.getColor(context, com.radio.player.R.color.spectrum_bar)
+        val tv = TypedValue()
+        paint.color = if (context.theme.resolveAttribute(com.radio.player.R.attr.spectrumBarColor, tv, true)) {
+            tv.data
+        } else {
+            ContextCompat.getColor(context, com.radio.player.R.color.spectrum_bar)
+        }
     }
 
     private val barHeights = FloatArray(barCount) { MIN_RATIO }

@@ -12,6 +12,7 @@
         <item name="android:textColorSecondary">@color/colorTextSecondary</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.DayNight</item>
         <item name="actionBarTheme">@style/ThemeOverlay.MaterialComponents.Dark.ActionBar</item>
+        <item name="spectrumBarColor">@color/spectrum_bar</item>
     </style>
 
     <style name="Theme.RadioPlayer.FreddieWembley" parent="Theme.MaterialComponents.NoActionBar">
@@ -26,6 +27,7 @@
         <item name="android:textColorSecondary">#C9B8A0</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.RadioPlayer.Wembley.Popup</item>
         <item name="actionBarTheme">@style/ThemeOverlay.RadioPlayer.Wembley.ActionBar</item>
+        <item name="spectrumBarColor">#FCD11D</item>
     </style>
 
     <style name="ThemeOverlay.RadioPlayer.Wembley.ActionBar" parent="ThemeOverlay.AppCompat.ActionBar">

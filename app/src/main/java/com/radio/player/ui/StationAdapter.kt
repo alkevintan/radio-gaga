@@ -1,6 +1,8 @@
 package com.radio.player.ui
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -12,10 +14,12 @@ class StationAdapter(
     private val onStationClick: (RadioStation) -> Unit,
     private val onFavoriteClick: (RadioStation) -> Unit,
     private val onLongClick: (RadioStation) -> Unit,
-    private val onShareClick: (RadioStation) -> Unit
+    private val onShareClick: (RadioStation) -> Unit,
+    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit = {}
 ) : ListAdapter<RadioStation, StationAdapter.StationViewHolder>(StationDiffCallback()) {
 
     private var currentlyPlayingId: Long = -1
+    private var dragHandlesVisible: Boolean = false
 
     fun setCurrentlyPlaying(id: Long) {
         val oldId = currentlyPlayingId
@@ -25,6 +29,22 @@ class StationAdapter(
             notifyItemChanged(findPosition(id))
         }
     }
+
+    fun setDragHandlesVisible(visible: Boolean) {
+        if (dragHandlesVisible == visible) return
+        dragHandlesVisible = visible
+        notifyItemRangeChanged(0, itemCount)
+    }
+
+    fun moveItem(from: Int, to: Int) {
+        if (from == to) return
+        val mutable = currentList.toMutableList()
+        val item = mutable.removeAt(from)
+        mutable.add(to, item)
+        submitList(mutable)
+    }
+
+    fun snapshotOrder(): List<RadioStation> = currentList.toList()
 
     private fun findPosition(id: Long): Int {
         return currentList.indexOfFirst { it.id == id }.coerceAtLeast(0)
@@ -45,6 +65,7 @@ class StationAdapter(
         private val binding: ItemStationBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
+        @SuppressLint("ClickableViewAccessibility")
         fun bind(station: RadioStation) {
             binding.stationName.text = station.name
             binding.stationGenre.text = station.genre.ifBlank { station.country }
@@ -73,6 +94,15 @@ class StationAdapter(
 
             binding.shareButton.setOnClickListener {
                 onShareClick(station)
+            }
+
+            binding.dragHandle.visibility =
+                if (dragHandlesVisible) android.view.View.VISIBLE else android.view.View.GONE
+            binding.dragHandle.setOnTouchListener { _, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    onStartDrag(this)
+                }
+                false
             }
         }
     }

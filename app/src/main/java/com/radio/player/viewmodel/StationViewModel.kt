@@ -119,4 +119,16 @@ class StationViewModel(application: Application) : AndroidViewModel(application)
     fun toggleFilter() {
         showFavoritesOnly.value = !(showFavoritesOnly.value ?: false)
     }
+
+    fun reorderStations(reordered: List<RadioStation>) {
+        viewModelScope.launch {
+            repository.reorder(reordered)
+        }
+    }
+
+    fun setVolumeGain(stationId: Long, gain: Float) {
+        viewModelScope.launch {
+            repository.setVolumeGain(stationId, gain)
+        }
+    }
 }

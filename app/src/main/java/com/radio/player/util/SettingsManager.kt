@@ -13,12 +13,13 @@ object SettingsManager {
     private const val KEY_AUTO_UPDATE_CHECK = "auto_update_check"
     private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
 
-    enum class SortOrder(val label: String) {
+    enum class SortOrder(val label: String, val isManual: Boolean = false) {
         NAME_ASC("Name (A-Z)"),
         NAME_DESC("Name (Z-A)"),
         DATE_ADDED("Recently Added"),
         GENRE("Genre"),
-        COUNTRY("Country")
+        COUNTRY("Country"),
+        MANUAL("Custom (drag to reorder)", isManual = true)
     }
 
     enum class Theme(val label: String, val themeResId: Int = 0, val splashThemeResId: Int = 0) {
