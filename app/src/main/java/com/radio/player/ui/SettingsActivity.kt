@@ -78,44 +78,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.autoUpdateCheckSwitch.setOnCheckedChangeListener { _, isChecked ->
             SettingsManager.setAutoUpdateCheck(this, isChecked)
         }
-
-        val owner = getString(R.string.update_github_owner)
-        val repo = getString(R.string.update_github_repo)
-        if (owner.isBlank() || repo.isBlank()) {
-            binding.updateStatusLabel.text = "GitHub repo not configured"
-            binding.checkUpdatesRow.isEnabled = false
-            return
-        }
-
-        val current = try {
-            packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
-        } catch (_: Exception) { "?" }
-        binding.updateStatusLabel.text = "Current: v$current"
-
-        binding.checkUpdatesRow.setOnClickListener {
-            checkForUpdates(current, manual = true)
-        }
-    }
-
-    private fun checkForUpdates(currentVersion: String, manual: Boolean) {
-        binding.updateProgress.visibility = View.VISIBLE
-        lifecycleScope.launch {
-            val release = try {
-                UpdateChecker.fetchLatest(this@SettingsActivity)
-            } catch (_: Exception) { null }
-            binding.updateProgress.visibility = View.GONE
-            SettingsManager.setLastUpdateCheck(this@SettingsActivity, System.currentTimeMillis())
-
-            if (release == null) {
-                if (manual) Toast.makeText(this@SettingsActivity, "Update check failed", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
-            if (UpdateChecker.isNewer(release, currentVersion)) {
-                UpdateDialog.show(this@SettingsActivity, release, currentVersion)
-            } else if (manual) {
-                UpdateDialog.showUpToDate(this@SettingsActivity, currentVersion)
-            }
-        }
     }
 
     private fun setupAutoReconnect() {
