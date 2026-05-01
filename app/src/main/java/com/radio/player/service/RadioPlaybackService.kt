@@ -289,6 +289,16 @@ class RadioPlaybackService : LifecycleService() {
 
         updateMediaSessionMetadata(station)
 
+        if (com.radio.player.util.SettingsManager.isTuningSoundEnabled(this)) {
+            playTuningSound {
+                startStationStream(station)
+            }
+        } else {
+            startStationStream(station)
+        }
+    }
+
+    private fun startStationStream(station: RadioStation) {
         val uri = android.net.Uri.parse(station.streamUrl)
         val mediaItem = MediaItem.fromUri(uri)
 
@@ -318,6 +328,47 @@ class RadioPlaybackService : LifecycleService() {
         requestAudioFocus()
         acquireWakeLock()
         startForeground()
+    }
+
+    private var tuningMediaPlayer: android.media.MediaPlayer? = null
+    private var tuningDoneCalled = false
+
+    private fun playTuningSound(onDone: () -> Unit) {
+        tuningDoneCalled = false
+        tuningMediaPlayer?.release()
+        tuningMediaPlayer = android.media.MediaPlayer().apply {
+            try {
+                val afd = assets.openFd("tuning.mp3")
+                setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                isLooping = false
+                setOnCompletionListener {
+                    if (!tuningDoneCalled) {
+                        tuningDoneCalled = true
+                        tuningMediaPlayer?.release()
+                        tuningMediaPlayer = null
+                        onDone()
+                    }
+                }
+                prepare()
+                start()
+            } catch (e: Exception) {
+                release()
+                tuningMediaPlayer = null
+                if (!tuningDoneCalled) {
+                    tuningDoneCalled = true
+                    onDone()
+                }
+            }
+        }
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(3000)
+            if (!tuningDoneCalled) {
+                tuningDoneCalled = true
+                tuningMediaPlayer?.release()
+                tuningMediaPlayer = null
+                onDone()
+            }
+        }
     }
 
     fun play() {

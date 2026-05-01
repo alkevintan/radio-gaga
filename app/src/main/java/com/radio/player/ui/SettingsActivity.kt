@@ -35,6 +35,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.settingsToolbar.setNavigationOnClickListener { finish() }
 
         setupAutoReconnect()
+        setupTuningSound()
         setupThemeSelector()
         setupAlarms()
     }
@@ -43,6 +44,13 @@ class SettingsActivity : AppCompatActivity() {
         binding.autoReconnectSwitch.isChecked = SettingsManager.isAutoReconnect(this)
         binding.autoReconnectSwitch.setOnCheckedChangeListener { _, isChecked ->
             SettingsManager.setAutoReconnect(this, isChecked)
+        }
+    }
+
+    private fun setupTuningSound() {
+        binding.tuningSoundSwitch.isChecked = SettingsManager.isTuningSoundEnabled(this)
+        binding.tuningSoundSwitch.setOnCheckedChangeListener { _, isChecked ->
+            SettingsManager.setTuningSoundEnabled(this, isChecked)
         }
     }
 

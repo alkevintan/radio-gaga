@@ -9,6 +9,7 @@ object SettingsManager {
     private const val KEY_SORT_ORDER = "sort_order"
     private const val KEY_AUTO_RECONNECT = "auto_reconnect"
     private const val KEY_THEME = "theme"
+    private const val KEY_TUNING_SOUND = "tuning_sound"
 
     enum class SortOrder(val label: String) {
         NAME_ASC("Name (A-Z)"),
@@ -50,5 +51,12 @@ object SettingsManager {
 
     fun setTheme(context: Context, theme: Theme) {
         prefs(context).edit().putString(KEY_THEME, theme.name).apply()
+    }
+
+    fun isTuningSoundEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_TUNING_SOUND, true)
+
+    fun setTuningSoundEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_TUNING_SOUND, enabled).apply()
     }
 }
