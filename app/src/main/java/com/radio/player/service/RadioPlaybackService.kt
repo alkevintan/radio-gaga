@@ -1,11 +1,21 @@
 package com.radio.player.service
 
 import android.app.*
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.AudioManager.OnAudioFocusChangeListener
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -28,12 +38,19 @@ import com.radio.player.data.RadioStation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.net.URL
 
 class RadioPlaybackService : LifecycleService() {
 
     private val binder = RadioBinder()
     private var exoPlayer: ExoPlayer? = null
-    private var currentPlayer: ExoPlayer? = null
+
+    private lateinit var mediaSession: MediaSessionCompat
+    private lateinit var wakeLock: PowerManager.WakeLock
+    private lateinit var audioManager: AudioManager
+    private var audioFocusRequest: AudioFocusRequest? = null
+    private var hasAudioFocus = false
+    private var lostFocusWhilePlaying = false
 
     private val _currentStation = MutableStateFlow<RadioStation?>(null)
     val currentStation: StateFlow<RadioStation?> = _currentStation
@@ -58,6 +75,27 @@ class RadioPlaybackService : LifecycleService() {
         const val ACTION_STOP = "com.radio.player.ACTION_STOP"
     }
 
+    private val audioFocusListener = OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                lostFocusWhilePlaying = _isPlaying.value
+                pause()
+                abandonAudioFocus()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                lostFocusWhilePlaying = _isPlaying.value
+                pause()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> { }
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                if (lostFocusWhilePlaying) {
+                    play()
+                    lostFocusWhilePlaying = false
+                }
+            }
+        }
+    }
+
     inner class RadioBinder : Binder() {
         fun getService(): RadioPlaybackService = this@RadioPlaybackService
     }
@@ -66,6 +104,9 @@ class RadioPlaybackService : LifecycleService() {
         super.onCreate()
         createNotificationChannel()
         initPlayer()
+        initMediaSession()
+        initWakeLock()
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -107,6 +148,7 @@ class RadioPlaybackService : LifecycleService() {
         exoPlayer?.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
+                updateMediaSessionPlaybackState()
                 updateNotification()
             }
 
@@ -115,6 +157,7 @@ class RadioPlaybackService : LifecycleService() {
                 if (state == Player.STATE_READY) {
                     _isError.value = false
                 }
+                updateMediaSessionPlaybackState()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -124,10 +167,112 @@ class RadioPlaybackService : LifecycleService() {
         })
     }
 
+    private fun initMediaSession() {
+        mediaSession = MediaSessionCompat(this, "RadioPlayer").apply {
+            setCallback(object : MediaSessionCompat.Callback() {
+                override fun onPlay() {
+                    this@RadioPlaybackService.play()
+                }
+                override fun onPause() {
+                    this@RadioPlaybackService.pause()
+                }
+                override fun onStop() {
+                    this@RadioPlaybackService.stopPlayback()
+                }
+            })
+            isActive = true
+        }
+    }
+
+    private fun initWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RadioPlayer::WakeLock")
+        wakeLock.setReferenceCounted(false)
+    }
+
+    private fun acquireWakeLock() {
+        if (!wakeLock.isHeld) {
+            wakeLock.acquire(4 * 60 * 60 * 1000L)
+        }
+    }
+
+    private fun releaseWakeLock() {
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
+    }
+
+    private fun requestAudioFocus() {
+        if (hasAudioFocus) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setOnAudioFocusChangeListener(audioFocusListener)
+                .setAudioAttributes(
+                    android.media.AudioAttributes.Builder()
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                .build()
+            val result = audioManager.requestAudioFocus(audioFocusRequest!!)
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        } else {
+            @Suppress("DEPRECATION")
+            val result = audioManager.requestAudioFocus(
+                audioFocusListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+            hasAudioFocus = result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+    }
+
+    private fun abandonAudioFocus() {
+        hasAudioFocus = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioFocusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(audioFocusListener)
+        }
+    }
+
+    private fun updateMediaSessionPlaybackState() {
+        val state = when {
+            _isPlaying.value -> PlaybackStateCompat.STATE_PLAYING
+            _isBuffering.value -> PlaybackStateCompat.STATE_BUFFERING
+            _currentStation.value != null -> PlaybackStateCompat.STATE_PAUSED
+            else -> PlaybackStateCompat.STATE_NONE
+        }
+
+        val actions = PlaybackStateCompat.ACTION_PLAY or
+                PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_STOP
+
+        val playbackState = PlaybackStateCompat.Builder()
+            .setActions(actions)
+            .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f)
+            .build()
+
+        mediaSession.setPlaybackState(playbackState)
+    }
+
+    private fun updateMediaSessionMetadata(station: RadioStation) {
+        val metadata = MediaMetadataCompat.Builder().apply {
+            putString(MediaMetadataCompat.METADATA_KEY_TITLE, station.name)
+            putString(MediaMetadataCompat.METADATA_KEY_ARTIST, station.genre.ifBlank { station.country })
+            putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Radio")
+            putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
+        }.build()
+        mediaSession.setMetadata(metadata)
+    }
+
     fun playStation(station: RadioStation) {
         _currentStation.value = station
         _isError.value = false
         _errorMessage.value = ""
+
+        updateMediaSessionMetadata(station)
 
         val uri = android.net.Uri.parse(station.streamUrl)
         val mediaItem = MediaItem.fromUri(uri)
@@ -155,16 +300,21 @@ class RadioPlaybackService : LifecycleService() {
             play()
         }
 
+        requestAudioFocus()
+        acquireWakeLock()
         startForeground()
     }
 
     fun play() {
+        requestAudioFocus()
+        acquireWakeLock()
         exoPlayer?.play()
         updateNotification()
     }
 
     fun pause() {
         exoPlayer?.pause()
+        releaseWakeLock()
         updateNotification()
     }
 
@@ -172,6 +322,14 @@ class RadioPlaybackService : LifecycleService() {
         exoPlayer?.stop()
         _isPlaying.value = false
         _isBuffering.value = false
+        releaseWakeLock()
+        abandonAudioFocus()
+        mediaSession.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setActions(PlaybackStateCompat.ACTION_PLAY)
+                .setState(PlaybackStateCompat.STATE_STOPPED, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f)
+                .build()
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -183,11 +341,19 @@ class RadioPlaybackService : LifecycleService() {
     fun release() {
         exoPlayer?.release()
         exoPlayer = null
+        mediaSession.release()
+        releaseWakeLock()
+        abandonAudioFocus()
     }
 
     override fun onDestroy() {
         release()
         super.onDestroy()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        stopPlayback()
+        super.onTaskRemoved(rootIntent)
     }
 
     private fun createNotificationChannel() {
@@ -223,6 +389,7 @@ class RadioPlaybackService : LifecycleService() {
     private fun buildNotification(): Notification {
         val station = _currentStation.value
         val playing = _isPlaying.value
+        val buffering = _isBuffering.value
 
         val contentIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -251,17 +418,48 @@ class RadioPlaybackService : LifecycleService() {
         val playPauseIcon = if (playing) R.drawable.ic_pause else R.drawable.ic_play
         val playPauseText = if (playing) "Pause" else "Play"
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val contentText = when {
+            buffering -> "Buffering…"
+            playing -> (station?.genre?.ifBlank { station.country })?.let { "Playing • $it" } ?: "Playing"
+            else -> "Paused"
+        }
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(station?.name ?: "Radio Player")
-            .setContentText(if (playing) "Playing" else "Paused")
+            .setContentText(contentText)
             .setSmallIcon(R.drawable.ic_radio)
             .setContentIntent(contentPending)
             .addAction(playPauseIcon, playPauseText, playPausePending)
             .addAction(R.drawable.ic_stop, "Stop", stopPending)
-            .setStyle(androidx.media.app.NotificationCompat.MediaStyle())
+            .setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle()
+                    .setMediaSession(mediaSession.sessionToken)
+                    .setShowActionsInCompactView(0, 1)
+            )
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setShowWhen(false)
             .setOngoing(playing)
-            .build()
+
+        if (station?.favicon?.isNotBlank() == true) {
+            try {
+                val bitmap = loadStationIcon(station.favicon)
+                if (bitmap != null) {
+                    builder.setLargeIcon(bitmap)
+                }
+            } catch (_: Exception) { }
+        }
+
+        return builder.build()
+    }
+
+    private fun loadStationIcon(url: String): Bitmap? {
+        return try {
+            val connection = URL(url).openConnection()
+            connection.connectTimeout = 3000
+            connection.readTimeout = 3000
+            connection.getInputStream().use { BitmapFactory.decodeStream(it) }
+        } catch (_: Exception) {
+            null
+        }
     }
 }
