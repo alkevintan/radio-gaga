@@ -15,7 +15,7 @@
         <ImageView
             android:layout_width="144dp"
             android:layout_height="144dp"
-            android:src="@drawable/icon_option_d"
+            android:src="@drawable/logo"
             android:contentDescription="@string/app_name" />
 
         <TextView
