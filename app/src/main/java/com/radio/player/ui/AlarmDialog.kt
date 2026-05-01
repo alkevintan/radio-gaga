@@ -79,7 +79,6 @@ class AlarmDialog(
 
     private fun populateFields() {
         if (existingAlarm != null) {
-            binding.dialogTitle.text = "Edit Alarm"
             binding.timePicker.hour = existingAlarm.hour
             binding.timePicker.minute = existingAlarm.minute
 
