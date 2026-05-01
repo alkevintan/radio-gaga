@@ -6,6 +6,10 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.AudioManager.OnAudioFocusChangeListener
@@ -214,6 +218,19 @@ class RadioPlaybackService : LifecycleService() {
 
     private fun initMediaSession() {
         mediaSession = MediaSessionCompat(this, "RadioPlayer").apply {
+            @Suppress("DEPRECATION")
+            setFlags(
+                MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
+                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
+            )
+            val launchIntent = Intent(this@RadioPlaybackService, MainActivity::class.java)
+                .apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP }
+            setSessionActivity(
+                PendingIntent.getActivity(
+                    this@RadioPlaybackService, 0, launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
                     this@RadioPlaybackService.play()
@@ -226,6 +243,42 @@ class RadioPlaybackService : LifecycleService() {
                 }
             })
             isActive = true
+        }
+    }
+
+    private var currentArtBitmap: Bitmap? = null
+
+    private val fallbackArt: Bitmap by lazy {
+        val size = 512
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        canvas.drawColor(ContextCompat.getColor(this, R.color.colorPrimary))
+        ContextCompat.getDrawable(this, R.drawable.ic_radio)?.let { d ->
+            val pad = size / 4
+            d.setBounds(pad, pad, size - pad, size - pad)
+            d.setTint(ContextCompat.getColor(this, R.color.colorOnPrimary))
+            d.draw(canvas)
+        }
+        bmp
+    }
+
+    private fun loadStationArtAsync(station: RadioStation) {
+        if (station.favicon.isBlank()) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val bmp = try {
+                val conn = URL(station.favicon).openConnection()
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
+                conn.getInputStream().use { BitmapFactory.decodeStream(it) }
+            } catch (_: Exception) { null } ?: return@launch
+
+            withContext(Dispatchers.Main) {
+                if (_currentStation.value?.id == station.id) {
+                    currentArtBitmap = bmp
+                    updateMediaSessionMetadata(station)
+                    updateNotification()
+                }
+            }
         }
     }
 
@@ -292,6 +345,7 @@ class RadioPlaybackService : LifecycleService() {
 
         val actions = PlaybackStateCompat.ACTION_PLAY or
                 PlaybackStateCompat.ACTION_PAUSE or
+                PlaybackStateCompat.ACTION_PLAY_PAUSE or
                 PlaybackStateCompat.ACTION_STOP
 
         val playbackState = PlaybackStateCompat.Builder()
@@ -303,11 +357,17 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     private fun updateMediaSessionMetadata(station: RadioStation) {
+        val art = currentArtBitmap ?: fallbackArt
         val metadata = MediaMetadataCompat.Builder().apply {
             putString(MediaMetadataCompat.METADATA_KEY_TITLE, station.name)
             putString(MediaMetadataCompat.METADATA_KEY_ARTIST, station.genre.ifBlank { station.country })
             putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Radio")
+            putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, station.name)
+            putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, station.genre.ifBlank { station.country })
             putLong(MediaMetadataCompat.METADATA_KEY_DURATION, -1)
+            putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, art)
+            putBitmap(MediaMetadataCompat.METADATA_KEY_ART, art)
+            putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, art)
         }.build()
         mediaSession.setMetadata(metadata)
     }
@@ -318,10 +378,12 @@ class RadioPlaybackService : LifecycleService() {
         _isError.value = false
         _errorMessage.value = ""
         _playStartTime.value = 0L
+        currentArtBitmap = null
 
         com.radio.player.util.SettingsManager.setLastPlayedStationId(this, station.id)
 
         updateMediaSessionMetadata(station)
+        loadStationArtAsync(station)
 
         if (com.radio.player.util.SettingsManager.isTuningSoundEnabled(this)) {
             playTuningSound {
@@ -621,26 +683,8 @@ class RadioPlaybackService : LifecycleService() {
             builder.setShowWhen(false)
         }
 
-        if (station?.favicon?.isNotBlank() == true) {
-            try {
-                val bitmap = loadStationIcon(station.favicon)
-                if (bitmap != null) {
-                    builder.setLargeIcon(bitmap)
-                }
-            } catch (_: Exception) { }
-        }
+        builder.setLargeIcon(currentArtBitmap ?: fallbackArt)
 
         return builder.build()
-    }
-
-    private fun loadStationIcon(url: String): Bitmap? {
-        return try {
-            val connection = URL(url).openConnection()
-            connection.connectTimeout = 3000
-            connection.readTimeout = 3000
-            connection.getInputStream().use { BitmapFactory.decodeStream(it) }
-        } catch (_: Exception) {
-            null
-        }
     }
 }
