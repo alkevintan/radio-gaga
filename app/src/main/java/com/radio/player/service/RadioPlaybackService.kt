@@ -31,6 +31,8 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
+import com.radio.player.util.HttpClientFactory
 import com.google.android.exoplayer2.util.Util
 import com.radio.player.MainActivity
 import com.radio.player.R
@@ -140,9 +142,7 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     private fun initPlayer() {
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(15000)
-            .setReadTimeoutMs(15000)
+        val httpDataSourceFactory = OkHttpDataSource.Factory(HttpClientFactory.get(this))
             .setUserAgent(Util.getUserAgent(this, "RadioPlayer"))
 
         val dataSourceFactory = DefaultDataSourceFactory(this, httpDataSourceFactory)
@@ -303,11 +303,8 @@ class RadioPlaybackService : LifecycleService() {
         val mediaItem = MediaItem.fromUri(uri)
 
         val userAgent = Util.getUserAgent(this, "RadioPlayer")
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setConnectTimeoutMs(15000)
-            .setReadTimeoutMs(15000)
+        val httpDataSourceFactory = OkHttpDataSource.Factory(HttpClientFactory.get(this))
             .setUserAgent(userAgent)
-            .setAllowCrossProtocolRedirects(true)
 
         val dataSourceFactory = DefaultDataSourceFactory(this, httpDataSourceFactory)
 
@@ -448,7 +445,7 @@ class RadioPlaybackService : LifecycleService() {
 
     private fun updateNotification() {
         val notification = buildNotification()
-        val manager = getSystemService(NotificationManager::class.java)
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, notification)
     }
 

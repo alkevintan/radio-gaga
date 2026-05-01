@@ -1,11 +1,13 @@
 package com.radio.player.ui
 
 import android.app.Dialog
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.TimePicker
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.radio.player.R
@@ -112,8 +114,8 @@ class AlarmDialog : DialogFragment() {
 
     private fun populateFields() {
         if (existingAlarm != null) {
-            binding.timePicker.hour = existingAlarm!!.hour
-            binding.timePicker.minute = existingAlarm!!.minute
+            binding.timePicker.setHourCompat(existingAlarm!!.hour)
+            binding.timePicker.setMinuteCompat(existingAlarm!!.minute)
 
             when (existingAlarm!!.repeatDays) {
                 0 -> binding.rbOnce.isChecked = true
@@ -136,8 +138,8 @@ class AlarmDialog : DialogFragment() {
     }
 
     private fun saveAlarm() {
-        val hour = binding.timePicker.hour
-        val minute = binding.timePicker.minute
+        val hour = binding.timePicker.getHourCompat()
+        val minute = binding.timePicker.getMinuteCompat()
 
         if (selectedStationId == -1L) {
             return
@@ -174,4 +176,22 @@ class AlarmDialog : DialogFragment() {
         onSave?.invoke(alarm)
         dismiss()
     }
+}
+
+@Suppress("DEPRECATION")
+private fun TimePicker.getHourCompat(): Int =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) hour else currentHour
+
+@Suppress("DEPRECATION")
+private fun TimePicker.getMinuteCompat(): Int =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) minute else currentMinute
+
+@Suppress("DEPRECATION")
+private fun TimePicker.setHourCompat(value: Int) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) hour = value else currentHour = value
+}
+
+@Suppress("DEPRECATION")
+private fun TimePicker.setMinuteCompat(value: Int) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) minute = value else currentMinute = value
 }

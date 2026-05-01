@@ -10,6 +10,8 @@ object SettingsManager {
     private const val KEY_AUTO_RECONNECT = "auto_reconnect"
     private const val KEY_THEME = "theme"
     private const val KEY_TUNING_SOUND = "tuning_sound"
+    private const val KEY_AUTO_UPDATE_CHECK = "auto_update_check"
+    private const val KEY_LAST_UPDATE_CHECK = "last_update_check"
 
     enum class SortOrder(val label: String) {
         NAME_ASC("Name (A-Z)"),
@@ -61,5 +63,19 @@ object SettingsManager {
 
     fun setTuningSoundEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_TUNING_SOUND, enabled).apply()
+    }
+
+    fun isAutoUpdateCheck(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_AUTO_UPDATE_CHECK, true)
+
+    fun setAutoUpdateCheck(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_AUTO_UPDATE_CHECK, enabled).apply()
+    }
+
+    fun getLastUpdateCheck(context: Context): Long =
+        prefs(context).getLong(KEY_LAST_UPDATE_CHECK, 0L)
+
+    fun setLastUpdateCheck(context: Context, ts: Long) {
+        prefs(context).edit().putLong(KEY_LAST_UPDATE_CHECK, ts).apply()
     }
 }

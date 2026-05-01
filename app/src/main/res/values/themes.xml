@@ -10,19 +10,36 @@
         <item name="colorOnSurface">@color/colorOnSurface</item>
         <item name="android:textColorPrimary">@color/colorTextPrimary</item>
         <item name="android:textColorSecondary">@color/colorTextSecondary</item>
-        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.DayNight</item>
+        <item name="actionBarTheme">@style/ThemeOverlay.MaterialComponents.Dark.ActionBar</item>
     </style>
 
     <style name="Theme.RadioPlayer.FreddieWembley" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">#1A1A2E</item>
-        <item name="colorPrimaryDark">#0D0D1A</item>
-        <item name="colorAccent">#FFD700</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="android:colorBackground">#0A0A12</item>
-        <item name="colorSurface">#12121F</item>
-        <item name="colorOnSurface">#E0E0E0</item>
-        <item name="android:textColorPrimary">#E0E0E0</item>
-        <item name="android:textColorSecondary">#BDBDBD</item>
-        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="colorPrimary">#FCD11D</item>
+        <item name="colorPrimaryDark">#C9A300</item>
+        <item name="colorAccent">#E0218A</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="colorSurface">#1A1A1A</item>
+        <item name="colorOnSurface">#FFF5E0</item>
+        <item name="android:textColorPrimary">#FFF5E0</item>
+        <item name="android:textColorSecondary">#C9B8A0</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.RadioPlayer.Wembley.Popup</item>
+        <item name="actionBarTheme">@style/ThemeOverlay.RadioPlayer.Wembley.ActionBar</item>
+    </style>
+
+    <style name="ThemeOverlay.RadioPlayer.Wembley.ActionBar" parent="ThemeOverlay.AppCompat.ActionBar">
+        <item name="android:textColorPrimary">#000000</item>
+        <item name="android:textColorSecondary">#000000</item>
+        <item name="colorControlNormal">#000000</item>
+        <item name="colorOnSurface">#000000</item>
+        <item name="actionMenuTextColor">#000000</item>
+    </style>
+
+    <style name="ThemeOverlay.RadioPlayer.Wembley.Popup" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="android:colorBackground">#1A1A1A</item>
+        <item name="colorSurface">#1A1A1A</item>
+        <item name="android:textColorPrimary">#FFF5E0</item>
+        <item name="android:textColorSecondary">#C9B8A0</item>
     </style>
 </resources>

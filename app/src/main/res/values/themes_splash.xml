@@ -7,8 +7,9 @@
     </style>
 
     <style name="Theme.RadioPlayer.Splash.FreddieWembley" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">#1A1A2E</item>
-        <item name="colorPrimaryDark">#0D0D1A</item>
+        <item name="colorPrimary">#FCD11D</item>
+        <item name="colorPrimaryDark">#C9A300</item>
+        <item name="android:colorBackground">#000000</item>
         <item name="android:windowFullscreen">true</item>
     </style>
 </resources>

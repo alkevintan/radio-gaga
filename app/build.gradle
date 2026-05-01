@@ -13,7 +13,7 @@ android {
         minSdk 21
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
     }
 
     buildTypes {
@@ -57,6 +57,8 @@ dependencies {
 
     implementation "com.google.android.exoplayer:exoplayer:$exoplayer_version"
     implementation "com.google.android.exoplayer:exoplayer-hls:$exoplayer_version"
+    implementation "com.google.android.exoplayer:extension-okhttp:$exoplayer_version"
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"

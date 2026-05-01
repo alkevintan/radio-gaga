@@ -31,8 +31,10 @@ import com.radio.player.ui.ShareQrDialog
 import com.radio.player.ui.SortDialog
 import com.radio.player.ui.StationAdapter
 import com.radio.player.ui.StationDialog
+import com.radio.player.ui.UpdateDialog
 import com.radio.player.util.M3uHelper
 import com.radio.player.util.SettingsManager
+import com.radio.player.util.UpdateChecker
 import com.radio.player.viewmodel.PlayerViewModel
 import com.radio.player.viewmodel.StationViewModel
 import kotlinx.coroutines.launch
@@ -106,6 +108,32 @@ class MainActivity : AppCompatActivity() {
         observeStations()
 
         startAndBindService()
+        maybeAutoCheckUpdate()
+    }
+
+    private fun maybeAutoCheckUpdate() {
+        if (!SettingsManager.isAutoUpdateCheck(this)) return
+        val owner = getString(R.string.update_github_owner)
+        val repo = getString(R.string.update_github_repo)
+        if (owner.isBlank() || repo.isBlank()) return
+
+        val last = SettingsManager.getLastUpdateCheck(this)
+        val now = System.currentTimeMillis()
+        if (now - last < 24L * 60 * 60 * 1000) return
+
+        val currentVersion = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: return
+        } catch (_: Exception) { return }
+
+        lifecycleScope.launch {
+            val release = try { UpdateChecker.fetchLatest(this@MainActivity) } catch (_: Exception) { null }
+            SettingsManager.setLastUpdateCheck(this@MainActivity, System.currentTimeMillis())
+            if (release != null && UpdateChecker.isNewer(release, currentVersion)) {
+                if (!isFinishing && !isDestroyed) {
+                    UpdateDialog.show(this@MainActivity, release, currentVersion)
+                }
+            }
+        }
     }
 
     override fun onResume() {

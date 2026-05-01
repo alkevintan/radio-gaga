@@ -11,4 +11,9 @@
     <string name="import_m3u">Import M3U</string>
     <string name="export_m3u">Export M3U</string>
     <string name="splash_subtitle">Someone still loves you</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="auto_check_updates">Auto-check on launch</string>
+    <string name="auto_check_updates_summary">Check GitHub Releases once a day</string>
+    <string name="update_github_owner" translatable="false">alkevintan</string>
+    <string name="update_github_repo" translatable="false">radio-gaga</string>
 </resources>
