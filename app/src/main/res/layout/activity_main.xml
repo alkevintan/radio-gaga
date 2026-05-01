@@ -111,15 +111,12 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAdd"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        android:contentDescription="Add station"
-        android:src="@drawable/ic_add"
-        app:tint="@color/colorOnPrimary" />
+    <View
+        android:id="@+id/speedDialScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/colorScrim"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/speedDialContainer"
@@ -211,11 +208,15 @@
 
     </LinearLayout>
 
-    <View
-        android:id="@+id/speedDialScrim"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/colorScrim"
-        android:visibility="gone" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="Add station"
+        android:src="@drawable/ic_add"
+        app:backgroundTint="?attr/colorPrimary"
+        app:tint="@color/colorOnPrimary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
