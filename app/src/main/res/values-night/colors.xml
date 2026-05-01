@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#90CAF9</color>
-    <color name="colorPrimaryDark">#1565C0</color>
+    <color name="colorPrimary">#5C8AB5</color>
+    <color name="colorPrimaryDark">#1A3A5C</color>
     <color name="colorAccent">#FFB74D</color>
-    <color name="colorOnPrimary">#000000</color>
+    <color name="colorOnPrimary">#E0E0E0</color>
     <color name="colorSurface">#1E1E1E</color>
     <color name="colorOnSurface">#E0E0E0</color>
     <color name="colorTextSecondary">#BDBDBD</color>
@@ -11,5 +11,5 @@
     <color name="colorBackground">#121212</color>
     <color name="colorScrim">#99000000</color>
     <color name="colorDragHandle">#BDBDBD</color>
-    <color name="spectrum_bar">#90CAF9</color>
+    <color name="spectrum_bar">#5C8AB5</color>
 </resources>
