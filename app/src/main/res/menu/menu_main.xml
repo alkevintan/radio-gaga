@@ -42,6 +42,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_remote"
+        android:title="Remote"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_recordings"
         android:title="Recordings"
         app:showAsAction="never" />

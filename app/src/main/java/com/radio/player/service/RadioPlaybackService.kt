@@ -45,9 +45,12 @@ import java.io.File
 import com.google.android.exoplayer2.util.Util
 import com.radio.player.MainActivity
 import com.radio.player.R
+import com.radio.player.data.AppDatabase
 import com.radio.player.data.RadioStation
+import com.radio.player.util.PairingProtocol
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.net.URL
 
@@ -92,12 +95,17 @@ class RadioPlaybackService : LifecycleService() {
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var loudnessEnhancerSession: Int = -1
 
+    private var pairingController: PairingController? = null
+    val pairing: PairingController?
+        get() = pairingController
+
     companion object {
         const val CHANNEL_ID = "radio_playback_channel"
         const val NOTIFICATION_ID = 1
         const val ACTION_PLAY = "com.radio.player.ACTION_PLAY"
         const val ACTION_PAUSE = "com.radio.player.ACTION_PAUSE"
         const val ACTION_STOP = "com.radio.player.ACTION_STOP"
+        const val ACTION_PAIRING_CHANGED = "com.radio.player.ACTION_PAIRING_CHANGED"
     }
 
     private val audioFocusListener = OnAudioFocusChangeListener { focusChange ->
@@ -132,6 +140,7 @@ class RadioPlaybackService : LifecycleService() {
         initMediaSession()
         initWakeLock()
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        initPairing()
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -160,6 +169,7 @@ class RadioPlaybackService : LifecycleService() {
             }
             ACTION_PAUSE -> pause()
             ACTION_STOP -> stopPlayback()
+            ACTION_PAIRING_CHANGED -> pairingController?.onPeerChanged()
         }
         return START_STICKY
     }
@@ -543,6 +553,63 @@ class RadioPlaybackService : LifecycleService() {
         mediaSession.release()
         releaseWakeLock()
         abandonAudioFocus()
+        pairingController?.shutdown()
+        pairingController = null
+    }
+
+    private fun initPairing() {
+        val controller = PairingController(
+            context = this,
+            snapshotState = { currentPairingState() },
+            snapshotStations = {
+                try {
+                    val dao = AppDatabase.getInstance(this).stationDao()
+                    kotlinx.coroutines.runBlocking { dao.getAllStationsSync() }
+                        .map { it.toDto() }
+                } catch (_: Exception) { emptyList() }
+            },
+            onIncomingCommand = { cmd -> applyRemoteCommand(cmd) }
+        )
+        pairingController = controller
+        controller.start()
+
+        // Broadcast state to inbound peers whenever any user-visible field changes.
+        lifecycleScope.launch {
+            combine(_currentStation, _isPlaying, _isBuffering, _playStartTime) { _, _, _, _ ->
+                currentPairingState()
+            }.collect { state ->
+                pairingController?.broadcastState(state)
+            }
+        }
+    }
+
+    private fun currentPairingState(): PairingProtocol.State {
+        val station = _currentStation.value
+        return PairingProtocol.State(
+            playing = _isPlaying.value,
+            buffering = _isBuffering.value,
+            station = station?.toDto(),
+            playStartMs = _playStartTime.value
+        )
+    }
+
+    private fun applyRemoteCommand(cmd: PairingProtocol.Cmd) {
+        when (cmd.action) {
+            PairingProtocol.ACTION_PLAY -> {
+                val current = _currentStation.value
+                if (current != null) play()
+            }
+            PairingProtocol.ACTION_PAUSE -> pause()
+            PairingProtocol.ACTION_STOP -> stopPlayback()
+            PairingProtocol.ACTION_PLAY_STATION -> {
+                val id = cmd.stationId ?: return
+                lifecycleScope.launch {
+                    val dao = AppDatabase.getInstance(this@RadioPlaybackService).stationDao()
+                    val station = dao.getStationById(id) ?: return@launch
+                    playStation(station)
+                }
+            }
+        }
     }
 
     fun startRecording(): RecordingResult {

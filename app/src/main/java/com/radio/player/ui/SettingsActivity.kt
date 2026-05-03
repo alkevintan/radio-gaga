@@ -5,13 +5,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
+import com.google.zxing.integration.android.IntentIntegrator
 import com.radio.player.R
 import com.radio.player.data.Alarm
 import com.radio.player.databinding.ActivitySettingsBinding
+import com.radio.player.service.RadioPlaybackService
+import com.radio.player.util.PairPayload
+import com.radio.player.util.PairingManager
 import com.radio.player.viewmodel.AlarmViewModel
 import com.radio.player.util.RecordingManager
 import com.radio.player.util.SettingsManager
@@ -48,12 +53,74 @@ class SettingsActivity : AppCompatActivity() {
         setupShowStreamUrls()
         setupUpdates()
         setupRecordings()
+        setupPairDevice()
         setupAlarms()
     }
 
     override fun onResume() {
         super.onResume()
         updateRecordingsSummary()
+        updatePairDeviceSummary()
+    }
+
+    private val pairScanLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val scan = IntentIntegrator.parseActivityResult(result.resultCode, result.data) ?: return@registerForActivityResult
+        val content = scan.contents ?: return@registerForActivityResult
+        val payload = PairPayload.decode(content)
+        if (payload == null) {
+            Toast.makeText(this, "Not a Radio Gaga pair code", Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+        if (payload.deviceId == PairingManager.localDeviceId(this)) {
+            Toast.makeText(this, "Cannot pair with this device", Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+        PairingManager.setPeer(
+            this,
+            PairingManager.Peer(deviceId = payload.deviceId, token = payload.token, name = payload.name)
+        )
+        notifyPairingChanged()
+        updatePairDeviceSummary()
+        Toast.makeText(this, "Paired with ${payload.name.ifBlank { "device" }}", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setupPairDevice() {
+        binding.pairDeviceRow.setOnClickListener {
+            val dialog = PairDeviceDialog()
+            dialog.onScanRequested = { launchPairScanner() }
+            dialog.onUnpair = {
+                PairingManager.clearPeer(this)
+                notifyPairingChanged()
+                updatePairDeviceSummary()
+            }
+            dialog.show(supportFragmentManager, "pair_device")
+        }
+        updatePairDeviceSummary()
+    }
+
+    private fun updatePairDeviceSummary() {
+        val peer = PairingManager.peer(this)
+        binding.pairDeviceSummary.text = if (peer != null) {
+            getString(R.string.paired_with, peer.name.ifBlank { "Device" })
+        } else {
+            getString(R.string.not_paired)
+        }
+    }
+
+    private fun launchPairScanner() {
+        val integrator = IntentIntegrator(this)
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
+        integrator.setPrompt("Scan the Radio Gaga pairing code")
+        integrator.setBeepEnabled(true)
+        integrator.setOrientationLocked(false)
+        pairScanLauncher.launch(integrator.createScanIntent())
+    }
+
+    private fun notifyPairingChanged() {
+        val intent = android.content.Intent(this, RadioPlaybackService::class.java).apply {
+            action = RadioPlaybackService.ACTION_PAIRING_CHANGED
+        }
+        try { startService(intent) } catch (_: Exception) {}
     }
 
     private fun setupRecordings() {

@@ -26,9 +26,11 @@ import com.google.zxing.integration.android.IntentIntegrator
 import com.radio.player.data.RadioStation
 import com.radio.player.databinding.ActivityMainBinding
 import com.radio.player.service.RadioPlaybackService
+import com.radio.player.service.PairingClient
 import com.radio.player.ui.AboutDialog
 import com.radio.player.ui.NowPlayingSheet
 import com.radio.player.ui.RecordingsActivity
+import com.radio.player.ui.RemoteSheet
 import com.radio.player.ui.SettingsActivity
 import com.radio.player.ui.ShareQrDialog
 import com.radio.player.ui.SortDialog
@@ -36,6 +38,7 @@ import com.radio.player.ui.StationAdapter
 import com.radio.player.ui.StationDialog
 import com.radio.player.ui.UpdateDialog
 import com.radio.player.util.M3uHelper
+import com.radio.player.util.PairingManager
 import com.radio.player.util.SettingsManager
 import com.radio.player.util.UpdateChecker
 import com.radio.player.viewmodel.PlayerViewModel
@@ -78,6 +81,8 @@ class MainActivity : AppCompatActivity() {
     private var lastThemeKey: String? = null
     private var lastShowStreamUrls: Boolean? = null
     private var autoPlayAttempted = false
+    private var remoteMenuItem: MenuItem? = null
+    private var lastPeerPlayingState: Boolean = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -86,6 +91,7 @@ class MainActivity : AppCompatActivity() {
             playerViewModel.radioService = radioService
             isBound = true
             observePlayerState()
+            observePairing()
             tryAutoPlay()
         }
 
@@ -312,6 +318,57 @@ class MainActivity : AppCompatActivity() {
         ).show(supportFragmentManager, "add_station")
     }
 
+    private fun observePairing() {
+        val service = radioService ?: return
+        val controller = service.pairing ?: return
+        lifecycleScope.launch {
+            controller.clientState.collect { state ->
+                updateRemoteAffordances(state)
+            }
+        }
+        lifecycleScope.launch {
+            controller.clientPeerName.collect { _ ->
+                updateRemoteAffordances(controller.clientState.value)
+            }
+        }
+        lifecycleScope.launch {
+            controller.outboundPeerState.collect { peerState ->
+                val peerPlaying = peerState?.playing == true
+                if (peerPlaying && !lastPeerPlayingState) {
+                    // Peer started playing — pause local audio for pure-remote behaviour.
+                    if (radioService?.isPlaying?.value == true) {
+                        radioService?.pause()
+                    }
+                }
+                lastPeerPlayingState = peerPlaying
+            }
+        }
+    }
+
+    private fun updateRemoteAffordances(state: PairingClient.State) {
+        val controller = radioService?.pairing
+        val peerConfigured = PairingManager.peer(this) != null
+        val connected = state == PairingClient.State.CONNECTED
+        binding.remoteBanner.visibility = if (connected) View.VISIBLE else View.GONE
+        if (connected) {
+            val name = controller?.clientPeerName?.value?.ifBlank { "peer" } ?: "peer"
+            binding.remoteBanner.text = "Connected to $name • tap for remote"
+            binding.remoteBanner.setOnClickListener { showRemoteSheet() }
+        }
+        remoteMenuItem?.isVisible = peerConfigured
+    }
+
+    private fun showRemoteSheet() {
+        val controller = radioService?.pairing ?: return
+        val sheet = RemoteSheet()
+        sheet.controller = controller
+        // Pure-remote behaviour: pause local while controlling peer.
+        if (radioService?.isPlaying?.value == true) {
+            radioService?.pause()
+        }
+        sheet.show(supportFragmentManager, "remote")
+    }
+
     private fun setupPlayerBar() {
         binding.playerBar.setOnClickListener {
             val station = radioService?.currentStation?.value ?: return@setOnClickListener
@@ -511,8 +568,10 @@ class MainActivity : AppCompatActivity() {
 
         filterMenuItem = menu.findItem(R.id.action_filter)
         searchMenuItem = menu.findItem(R.id.action_search)
+        remoteMenuItem = menu.findItem(R.id.action_remote)
 
         updateFilterMenuIcon()
+        radioService?.pairing?.let { updateRemoteAffordances(it.clientState.value) }
 
         val searchView = searchMenuItem?.actionView as? SearchView
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
@@ -561,6 +620,10 @@ class MainActivity : AppCompatActivity() {
             }
             R.id.action_export_m3u -> {
                 exportLauncher.launch("stations.m3u")
+                true
+            }
+            R.id.action_remote -> {
+                showRemoteSheet()
                 true
             }
             R.id.action_recordings -> {
