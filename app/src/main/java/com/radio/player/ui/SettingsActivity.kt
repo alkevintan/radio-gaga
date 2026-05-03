@@ -31,6 +31,30 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var alarmViewModel: AlarmViewModel
 
+    private var radioService: RadioPlaybackService? = null
+    private var serviceBound = false
+    private val serviceConnection = object : android.content.ServiceConnection {
+        override fun onServiceConnected(name: android.content.ComponentName?, service: android.os.IBinder?) {
+            val binder = service as? RadioPlaybackService.RadioBinder ?: return
+            radioService = binder.getService()
+            serviceBound = true
+            observePeerChanges()
+        }
+        override fun onServiceDisconnected(name: android.content.ComponentName?) {
+            radioService = null
+            serviceBound = false
+        }
+    }
+
+    private fun observePeerChanges() {
+        val controller = radioService?.pairing ?: return
+        lifecycleScope.launch {
+            controller.peerChangedTick.collect {
+                updatePairDeviceSummary()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val theme = SettingsManager.getTheme(this)
         if (theme == SettingsManager.Theme.FREDDIE_WEMBLEY) {
@@ -55,6 +79,20 @@ class SettingsActivity : AppCompatActivity() {
         setupRecordings()
         setupPairDevice()
         setupAlarms()
+
+        bindService(
+            android.content.Intent(this, RadioPlaybackService::class.java),
+            serviceConnection,
+            android.content.Context.BIND_AUTO_CREATE
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (serviceBound) {
+            try { unbindService(serviceConnection) } catch (_: Exception) {}
+            serviceBound = false
+        }
     }
 
     override fun onResume() {

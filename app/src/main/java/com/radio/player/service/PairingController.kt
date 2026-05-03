@@ -43,6 +43,10 @@ class PairingController(
     companion object { private const val TAG = "PairingController" }
 
     private val nsd = PairingNsd(context)
+    private val _peerChangedTick = MutableStateFlow(0)
+    /** Bumps whenever local pair state changes (e.g. auto-pair from inbound HELLO). */
+    val peerChangedTick: StateFlow<Int> = _peerChangedTick
+
     private val server: PairingServer = PairingServer(
         context = context,
         onMessage = { conn, line -> handleServerMessage(conn, line) },
@@ -53,6 +57,13 @@ class PairingController(
         },
         onDisconnected = { conn ->
             Log.d(TAG, "peer disconnected (inbound): ${conn.peerName}")
+        },
+        onAutoPaired = {
+            Log.d(TAG, "auto-paired from inbound HELLO authProof")
+            _peerChangedTick.value = _peerChangedTick.value + 1
+            // Now that we know who our peer is, kick outbound discovery so the link
+            // works in both directions even if the peer never connects again.
+            beginOutboundDiscovery()
         }
     )
     private val client: PairingClient = PairingClient(context) { line ->

@@ -30,11 +30,21 @@ object PairingProtocol {
 
     private val gson = Gson()
 
+    /**
+     * Sent by the connecting client immediately after socket open.
+     *
+     * Carries the client's own identity (`selfDeviceId`/`selfToken`/`selfName`) so the
+     * server can save it as a known peer. `authProof`, when present, is the server's
+     * own token as obtained from a freshly scanned pair QR — it lets first-time
+     * connections authenticate before the server has stored the client. Once paired,
+     * subsequent connections rely on the stored peer match and `authProof` may be null.
+     */
     data class Hello(
         val type: String = TYPE_HELLO,
-        val deviceId: String,
-        val token: String,
-        val name: String,
+        val selfDeviceId: String,
+        val selfToken: String,
+        val selfName: String,
+        val authProof: String? = null,
         val protoVersion: Int = 1
     )
 
@@ -43,6 +53,7 @@ object PairingProtocol {
         val deviceId: String,
         val name: String,
         val ok: Boolean,
+        val pairedBack: Boolean = false,
         val error: String? = null
     )
 

@@ -30,7 +30,9 @@ class PairingServer(
     private val context: android.content.Context,
     private val onMessage: (Conn, String) -> Unit,
     private val onConnected: (Conn) -> Unit,
-    private val onDisconnected: (Conn) -> Unit
+    private val onDisconnected: (Conn) -> Unit,
+    /** Fired when an inbound HELLO carrying a valid authProof saves a new peer. */
+    private val onAutoPaired: () -> Unit = {}
 ) {
 
     companion object { private const val TAG = "PairingServer" }
@@ -90,15 +92,35 @@ class PairingServer(
             closeQuiet(socket); return
         }
 
-        val peer = PairingManager.peer(context)
-        val ok = peer != null &&
-            peer.deviceId == hello.deviceId &&
-            peer.token == hello.token
+        // Auth: accept either a known peer (reconnect) OR a fresh authProof carrying our
+        // own local token (proof the client saw our pair QR). On authProof, auto-save the
+        // client as our peer so future reconnects match the known-peer branch.
+        val stored = PairingManager.peer(context)
+        val matchesStored = stored != null &&
+            stored.deviceId == hello.selfDeviceId &&
+            stored.token == hello.selfToken
+        val proofValid = hello.authProof != null &&
+            hello.authProof == PairingManager.localToken(context)
+        val ok = matchesStored || proofValid
+
+        var autoPaired = false
+        if (ok && !matchesStored) {
+            PairingManager.setPeer(
+                context,
+                PairingManager.Peer(
+                    deviceId = hello.selfDeviceId,
+                    token = hello.selfToken,
+                    name = hello.selfName
+                )
+            )
+            autoPaired = true
+        }
 
         val ack = PairingProtocol.HelloAck(
             deviceId = PairingManager.localDeviceId(context),
             name = PairingManager.localName(context),
             ok = ok,
+            pairedBack = ok,
             error = if (ok) null else "unauthorized"
         )
         try {
@@ -108,7 +130,9 @@ class PairingServer(
 
         if (!ok) { closeQuiet(socket); return }
 
-        val conn = Conn(socket, out, hello.deviceId, hello.name)
+        if (autoPaired) onAutoPaired()
+
+        val conn = Conn(socket, out, hello.selfDeviceId, hello.selfName)
         conns.add(conn)
         onConnected(conn)
 

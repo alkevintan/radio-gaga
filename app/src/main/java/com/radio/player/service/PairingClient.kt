@@ -69,16 +69,19 @@ class PairingClient(
             val out = s.getOutputStream()
             val reader = BufferedReader(InputStreamReader(s.getInputStream(), Charsets.UTF_8))
 
-            // Send HELLO
+            // Send HELLO with our own identity. authProof = peer's token from the QR scan,
+            // sent until the server confirms it has saved us as its peer.
             val peer = PairingManager.peer(context)
             if (peer == null) {
                 _state.value = State.ERROR
                 closeQuiet(s); return@launch
             }
+            val authProof = if (!PairingManager.isPeerPairedBack(context)) peer.token else null
             val hello = PairingProtocol.Hello(
-                deviceId = peer.deviceId,
-                token = peer.token,
-                name = PairingManager.localName(context)
+                selfDeviceId = PairingManager.localDeviceId(context),
+                selfToken = PairingManager.localToken(context),
+                selfName = PairingManager.localName(context),
+                authProof = authProof
             )
             try {
                 out.write(PairingProtocol.encode(hello).toByteArray(Charsets.UTF_8))
@@ -96,6 +99,9 @@ class PairingClient(
             if (ack == null || !ack.ok) {
                 _state.value = State.ERROR
                 closeQuiet(s); return@launch
+            }
+            if (ack.pairedBack && !PairingManager.isPeerPairedBack(context)) {
+                PairingManager.setPeerPairedBack(context, true)
             }
             _peerName.value = ack.name
             _state.value = State.CONNECTED

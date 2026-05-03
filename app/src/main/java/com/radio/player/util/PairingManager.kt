@@ -21,6 +21,8 @@ object PairingManager {
     private const val KEY_PEER_DEVICE_ID = "pair_peer_device_id"
     private const val KEY_PEER_TOKEN = "pair_peer_token"
     private const val KEY_PEER_NAME = "pair_peer_name"
+    /** True once the server confirmed it has saved us as its peer (bidirectional pair). */
+    private const val KEY_PEER_PAIRED_BACK = "pair_peer_paired_back"
 
     private fun prefs(context: Context) = PreferenceManager.getDefaultSharedPreferences(context)
 
@@ -77,6 +79,7 @@ object PairingManager {
             .putString(KEY_PEER_DEVICE_ID, peer.deviceId)
             .putString(KEY_PEER_TOKEN, peer.token)
             .putString(KEY_PEER_NAME, peer.name)
+            .putBoolean(KEY_PEER_PAIRED_BACK, false)
             .apply()
     }
 
@@ -85,7 +88,15 @@ object PairingManager {
             .remove(KEY_PEER_DEVICE_ID)
             .remove(KEY_PEER_TOKEN)
             .remove(KEY_PEER_NAME)
+            .remove(KEY_PEER_PAIRED_BACK)
             .apply()
+    }
+
+    fun isPeerPairedBack(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_PEER_PAIRED_BACK, false)
+
+    fun setPeerPairedBack(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_PEER_PAIRED_BACK, value).apply()
     }
 
     private fun randomToken(): String {
