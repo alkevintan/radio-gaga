@@ -594,16 +594,17 @@ class RadioPlaybackService : LifecycleService() {
     }
 
     private fun applyRemoteCommand(cmd: PairingProtocol.Cmd) {
-        when (cmd.action) {
-            PairingProtocol.ACTION_PLAY -> {
-                val current = _currentStation.value
-                if (current != null) play()
-            }
-            PairingProtocol.ACTION_PAUSE -> pause()
-            PairingProtocol.ACTION_STOP -> stopPlayback()
-            PairingProtocol.ACTION_PLAY_STATION -> {
-                val id = cmd.stationId ?: return
-                lifecycleScope.launch {
+        // ExoPlayer requires Main-thread access; this entry point is invoked from the
+        // PairingServer IO coroutine, so every branch must hop to lifecycleScope.
+        lifecycleScope.launch {
+            when (cmd.action) {
+                PairingProtocol.ACTION_PLAY -> {
+                    if (_currentStation.value != null) play()
+                }
+                PairingProtocol.ACTION_PAUSE -> pause()
+                PairingProtocol.ACTION_STOP -> stopPlayback()
+                PairingProtocol.ACTION_PLAY_STATION -> {
+                    val id = cmd.stationId ?: return@launch
                     val dao = AppDatabase.getInstance(this@RadioPlaybackService).stationDao()
                     val station = dao.getStationById(id) ?: return@launch
                     playStation(station)
